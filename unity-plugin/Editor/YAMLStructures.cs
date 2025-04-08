@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using YamlDotNet.Serialization;
 
 public class GitHubWorkflow
 {
@@ -10,6 +11,8 @@ public class GitHubWorkflow
 public class Trigger
 {
     public Branches push { get; set; }
+
+    [YamlMember(Alias = "pull_request")]
     public Branches pull_request { get; set; }
 }
 
@@ -20,6 +23,7 @@ public class Branches
 
 public class Job
 {
+    [YamlMember(Alias = "runs-on")]
     public string runs_on { get; set; }
     public List<Step> steps { get; set; }
 }
@@ -28,5 +32,10 @@ public class Step
 {
     public string name { get; set; }
     public string uses { get; set; }
+
+    public bool ShouldSerializeName() => !string.IsNullOrEmpty(name);
+
+    public bool ShouldSerializeWith() => with != null && with.Count > 0;
+
     public Dictionary<string, string> with { get; set; }
 }

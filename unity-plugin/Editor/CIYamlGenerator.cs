@@ -21,28 +21,32 @@ public class CIYamlGenerator
             jobs = new Dictionary<string, Job>
             {
                 {
-                    "test", new Job
+                    "build", new Job
                     {
                         runs_on = "ubuntu-latest",
                         steps = new List<Step>
                         {
-                            new Step { uses = "actions/checkout@v3" },
+                            new Step
+                            {
+                                name = "checkout repository",
+                                uses = "actions/checkout@v4"
+                            },
                             new Step
                             {
                                 name = "Set up Unity",
                                 uses = "game-ci/unity-actions/setup@v2",
                                 with = new Dictionary<string, string>
                                 {
-                                    { "unityVersion", "2021.3.16f1" }
+                                    { "unityVersion", "6000.0.44f1" }
                                 }
                             },
                             new Step
                             {
-                                name = "Run tests",
-                                uses = "game-ci/unity-actions/test@v2",
+                                name = "Build project",
+                                uses = "game-ci/unity-builder@v4",
                                 with = new Dictionary<string, string>
                                 {
-                                    { "testMode", "PlayMode" }
+                                    { "targetPlatform", "StandaloneOSX" }
                                 }
                             }
                         }
@@ -52,14 +56,10 @@ public class CIYamlGenerator
         };
 
         var serializer = new SerializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
             .Build();
 
         return serializer.Serialize(workflow);
-
-        // var outputPath = "Assets/unity-ci.yml";
-        // File.WriteAllText(outputPath, yaml);
-
-        // Debug.Log($"✅ YAML generated at: {outputPath}");
     }
 }

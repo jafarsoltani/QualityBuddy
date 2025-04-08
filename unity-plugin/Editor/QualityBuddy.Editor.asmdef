@@ -1,9 +1,10 @@
 {
     "name": "QualityBuddy.Editor",
-    "includePlatforms": ["Editor"],
+    "includePlatforms": [
+        "Editor"
+    ],
     "references": [
         "ThirdParty.YamlDotNet"
     ],
     "autoReferenced": true
-  }
-  
+}

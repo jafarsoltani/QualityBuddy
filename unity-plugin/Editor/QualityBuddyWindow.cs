@@ -12,6 +12,15 @@ public class QualityBuddyWindow : EditorWindow
 
   private string yamlPath = "Assets/QualityBuddy-CI.yml";
 
+  private enum LicenseType { Free, Professional }
+  private LicenseType selectedLicenseType = LicenseType.Free;
+
+  private string unityEmail = "";
+  private string unityPassword = "";
+  private string unitySerialKey = "";
+  private string licenseFilePath = "";
+
+
   [MenuItem("Tools/QualityBuddy/CI Setup")]
   public static void ShowWindow()
   {
@@ -36,6 +45,17 @@ public class QualityBuddyWindow : EditorWindow
       EditorGUILayout.Space(10);
     }
 
+    DrawLicenseSection();
+    EditorGUILayout.Space(10);
+
+    EditorGUI.BeginDisabledGroup(!IsInputValid());
+
+    if (GUILayout.Button("Add GitHub Secrets"))
+    {
+      AddGitHubSecrets();
+      EditorGUILayout.Space(10);
+    }
+
     GUILayout.Label("QualityBuddy – CI Setup", EditorStyles.boldLabel);
     EditorGUILayout.Space();
 
@@ -46,8 +66,62 @@ public class QualityBuddyWindow : EditorWindow
     EditorGUILayout.Space(10);
 
     DrawTestToolsSection();
+
+    EditorGUI.EndDisabledGroup();
   }
 
+  private bool IsInputValid()
+  {
+    if (string.IsNullOrEmpty(unityEmail) || !unityEmail.Contains("@") || !unityEmail.Contains("."))
+      return false;
+
+    if (string.IsNullOrEmpty(unityPassword) || unityPassword.Length < 6)
+      return false;
+
+    if (selectedLicenseType == LicenseType.Professional)
+    {
+      if (string.IsNullOrEmpty(unitySerialKey) || unitySerialKey.Length < 10)
+        return false;
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(licenseFilePath) || !File.Exists(licenseFilePath) || Path.GetExtension(licenseFilePath) != ".ulf")
+        return false;
+    }
+
+    return true;
+  }
+
+  private void DrawLicenseSection()
+  {
+    EditorGUILayout.LabelField("🧾 Unity License Setup", EditorStyles.boldLabel);
+
+    selectedLicenseType = (LicenseType)EditorGUILayout.EnumPopup("License Type", selectedLicenseType);
+
+    unityEmail = EditorGUILayout.TextField("Unity Email", unityEmail);
+    unityPassword = EditorGUILayout.PasswordField("Unity Password", unityPassword);
+
+    if (selectedLicenseType == LicenseType.Professional)
+    {
+      unitySerialKey = EditorGUILayout.TextField("Unity Serial Key", unitySerialKey);
+    }
+    else
+    {
+      EditorGUILayout.BeginHorizontal();
+      EditorGUILayout.LabelField("License File (.ulf)", GUILayout.Width(150));
+      if (GUILayout.Button("Browse", GUILayout.Width(100)))
+      {
+        string selectedPath = EditorUtility.OpenFilePanel("Select Unity License File", "", "ulf");
+        if (!string.IsNullOrEmpty(selectedPath))
+        {
+          licenseFilePath = selectedPath;
+        }
+      }
+      EditorGUILayout.EndHorizontal();
+
+      EditorGUILayout.LabelField(licenseFilePath);
+    }
+  }
   private void DrawApiKeySection()
   {
     GUILayout.Label("🔑 API Key (optional – for cloud sync):", EditorStyles.label);
@@ -107,4 +181,25 @@ public class QualityBuddyWindow : EditorWindow
       Debug.LogWarning("Unity version is not compatible. Please use Unity 2021.3.x.");
     }
   }
+
+  private void AddGitHubSecrets()
+  {
+    Debug.Log("🔐 Adding GitHub Secrets...");
+
+    Debug.Log($"UNITY_EMAIL = {unityEmail}");
+    Debug.Log($"UNITY_PASSWORD = {new string('*', unityPassword.Length)}");
+
+    if (selectedLicenseType == LicenseType.Professional)
+    {
+      Debug.Log($"UNITY_SERIAL = {unitySerialKey}");
+    }
+    else
+    {
+      Debug.Log($"UNITY_LICENSE_FILE = {licenseFilePath}");
+    }
+
+    // In a real setup, you'd write to a secrets manager file or call GitHub API.
+    // You can serialize these into a .env or a JSON and include it in the CI setup step.
+  }
+
 }
