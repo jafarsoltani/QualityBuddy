@@ -43,7 +43,7 @@ public class QualityBuddyWindow : EditorWindow
         }
     }
 
-    private void DrawCISection()
+    private void DrawCISection() 
     {
         GUILayout.Label("⚙️ GitHub Actions CI Setup", EditorStyles.label);
         if (GUILayout.Button("Generate GitHub Actions YML"))

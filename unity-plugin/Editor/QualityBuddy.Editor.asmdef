@@ -1,0 +1,7 @@
+{
+    "name": "QualityBuddy.Editor",
+    "includePlatforms": ["Editor"],
+    "references": [],
+    "autoReferenced": true
+  }
+  
