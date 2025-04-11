@@ -39,7 +39,7 @@ jobs:
           
           HASH=${{ steps.unity_hash.outputs.hash }}
           
-          URL="https://download.unity3d.com/download_unity/${UNITY_HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
+          URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
           echo "📥 Downloading: $URL"
           wget "$URL"
 
