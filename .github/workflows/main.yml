@@ -24,11 +24,19 @@ jobs:
           path: ~/.cache/unity
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
-      - name: Install Unity
+      - name: Download Unity Installer
         run: |
-          wget https://download.unity3d.com/download_unity/$(echo $UNITY_VERSION | tr '.' '_')/UnitySetup
-          chmod +x UnitySetup
-          ./UnitySetup --unattended --install-location /opt/unity --version $UNITY_VERSION
+          UNITY_VERSION="6000.0.44f1"
+          HASH=${{ steps.unity_hash.outputs.hash }}
+          
+          URL="https://download.unity3d.com/download_unity/${HASH}/UnitySetup-${UNITY_VERSION}"
+          echo "Downloading Unity from: $URL"
+          
+          wget "$URL"
+          chmod +x "UnitySetup-${UNITY_VERSION}"
+
+          ./UnitySetup-${UNITY_VERSION} --unattended --install-location /opt/unity --components Unity
+
 
       - name: Activate Unity License (Free)
         if: env.UNITY_LICENSE != ''
@@ -40,6 +48,14 @@ jobs:
         if: env.UNITY_SERIAL != ''
         run: |
           /opt/unity/Editor/Unity -batchmode -nographics -username "$UNITY_EMAIL" -password "$UNITY_PASSWORD" -serial "$UNITY_SERIAL" -logFile /dev/stdout || true
+
+      # - name: Build Project
+      #   run: |
+      #     /opt/unity/Editor/Unity -batchmode -nographics -quit \
+      #       -projectPath . \
+      #       -buildTarget StandaloneLinux64 \
+      #       -executeMethod BuildScript.PerformBuild \
+      #       -logFile /dev/stdout
 
       - name: Deactivate Unity License
         if: always()
