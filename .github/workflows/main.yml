@@ -55,9 +55,17 @@ jobs:
           /opt/unity/Editor/Unity -batchmode -nographics -manualLicenseFile Unity_v${UNITY_VERSION}.ulf || true
 
       - name: Activate Unity License (Pro)
-        if: env.UNITY_SERIAL != ''
         run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -username "$UNITY_EMAIL" -password "$UNITY_PASSWORD" -serial "$UNITY_SERIAL" -logFile /dev/stdout || true
+          /opt/unity/Editor/Unity \
+            -batchmode -nographics -quit \
+            -logFile - \
+            -serial "$UNITY_LICENSE" \
+            -username "$UNITY_EMAIL" \
+            -password "$UNITY_PASSWORD"
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
       # - name: Build Project
       #   run: |
