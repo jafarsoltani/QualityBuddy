@@ -39,14 +39,14 @@ jobs:
           
           HASH=${{ steps.unity_hash.outputs.hash }}
           
-          URL="https://download.unity3d.com/download_unity/${HASH}/UnitySetup-${UNITY_VERSION}"
-          echo "Downloading Unity from: $URL"
-          
+          URL="https://download.unity3d.com/download_unity/${UNITY_HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
+          echo "📥 Downloading: $URL"
           wget "$URL"
-          chmod +x "UnitySetup-${UNITY_VERSION}"
 
-          ./UnitySetup-${UNITY_VERSION} --unattended --install-location /opt/unity --components Unity
+          mkdir -p /opt/unity
+          tar -xJf Unity-${UNITY_VERSION}.tar.xz -C /opt/unity
 
+          echo "✅ Unity installed to /opt/unity"
 
       - name: Activate Unity License (Free)
         if: env.UNITY_LICENSE != ''
