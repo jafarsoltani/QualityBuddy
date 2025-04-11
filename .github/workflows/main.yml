@@ -24,9 +24,19 @@ jobs:
           path: ~/.cache/unity
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
+      - name: Get Unity Download Hash
+        id: unity_hash
+        run: |
+          
+          JSON_URL="https://public-cdn.cloud.unity3d.com/hub/prod/releases-linux.json"
+
+          HASH=$(curl -s $JSON_URL | jq -r --arg ver "$UNITY_VERSION" '.official[] | select(.version == $ver) | .downloadUrl' | sed 's|.*download_unity/||;s|/.*||')
+
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
       - name: Download Unity Installer
         run: |
-          UNITY_VERSION="6000.0.44f1"
+          
           HASH=${{ steps.unity_hash.outputs.hash }}
           
           URL="https://download.unity3d.com/download_unity/${HASH}/UnitySetup-${UNITY_VERSION}"
