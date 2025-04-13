@@ -58,6 +58,8 @@ jobs:
             exit 1
           fi
 
+          ls -lh ~/.cache/unity/Unity-${UNITY_VERSION}.tar.xz
+
           sudo mkdir -p /opt/unity
           sudo tar -xJf "$INSTALLER_PATH" -C /opt/unity
           echo "✅ Unity installed to /opt/unity"
