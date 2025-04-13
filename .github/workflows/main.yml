@@ -36,16 +36,19 @@ jobs:
 
       - name: Download Unity Installer
         run: |
-          
           HASH=${{ steps.unity_hash.outputs.hash }}
-          
-          URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
-          echo "📥 Downloading: $URL"
-          wget "$URL"
+          INSTALLER_PATH="$HOME/.cache/unity/Unity-${UNITY_VERSION}.tar.xz"
 
-          mkdir -p /opt/unity
-          tar -xJf Unity-${UNITY_VERSION}.tar.xz -C /opt/unity
+          if [ ! -f "$INSTALLER_PATH" ]; then
+            URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
+            echo "📥 Downloading: $URL"
+            wget "$URL" -O "$INSTALLER_PATH"
+          else
+            echo "✅ Found Unity installer in cache."
+          fi
 
+          sudo mkdir -p /opt/unity
+          sudo tar -xJf "$INSTALLER_PATH" -C /opt/unity
           echo "✅ Unity installed to /opt/unity"
 
       - name: Activate Unity License (Pro)
