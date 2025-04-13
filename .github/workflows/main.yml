@@ -80,7 +80,7 @@ jobs:
       - name: Resolve Packages
         run: |
           /opt/unity/Editor/Unity -batchmode -nographics \
-            -projectPath . \
+            -projectPath Test/QualityBuddyDev \
             -quit \
             -logFile /dev/stdout
 
