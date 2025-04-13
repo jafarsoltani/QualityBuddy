@@ -1,0 +1,75 @@
+name: Unity Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      UNITY_VERSION: 6000.0.3f1
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Cache Unity installation
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/unity
+          key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
+
+      - name: Get Unity Download Hash
+        id: unity_hash
+        run: |
+          
+          JSON_URL="https://public-cdn.cloud.unity3d.com/hub/prod/releases-linux.json"
+
+          HASH=$(curl -s $JSON_URL | jq -r --arg ver "$UNITY_VERSION" '.official[] | select(.version == $ver) | .downloadUrl' | sed 's|.*download_unity/||;s|/.*||')
+
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Download Unity Installer
+        run: |
+          
+          HASH=${{ steps.unity_hash.outputs.hash }}
+          
+          URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
+          echo "📥 Downloading: $URL"
+          wget "$URL"
+
+          mkdir -p /opt/unity
+          tar -xJf Unity-${UNITY_VERSION}.tar.xz -C /opt/unity
+
+          echo "✅ Unity installed to /opt/unity"
+
+      - name: Activate Unity License (Pro)
+        run: |
+          /opt/unity/Editor/Unity \
+            -batchmode -nographics -quit \
+            -logFile - \
+            -serial "$UNITY_LICENSE" \
+            -username "$UNITY_EMAIL" \
+            -password "$UNITY_PASSWORD"
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+
+      # - name: Build Project
+      #   run: |
+      #     /opt/unity/Editor/Unity -batchmode -nographics -quit \
+      #       -projectPath . \
+      #       -buildTarget StandaloneLinux64 \
+      #       -executeMethod BuildScript.PerformBuild \
+      #       -logFile /dev/stdout
+
+      - name: Deactivate Unity License
+        if: always()
+        run: |
+          /opt/unity/Editor/Unity -batchmode -nographics -returnlicense -logFile /dev/stdout || true
