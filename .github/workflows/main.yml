@@ -48,12 +48,6 @@ jobs:
 
           echo "✅ Unity installed to /opt/unity"
 
-      - name: Activate Unity License (Free)
-        if: env.UNITY_LICENSE != ''
-        run: |
-          echo "${UNITY_LICENSE}" > Unity_v${UNITY_VERSION}.ulf
-          /opt/unity/Editor/Unity -batchmode -nographics -manualLicenseFile Unity_v${UNITY_VERSION}.ulf || true
-
       - name: Activate Unity License (Pro)
         run: |
           /opt/unity/Editor/Unity \
@@ -67,13 +61,13 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
-      # - name: Build Project
-      #   run: |
-      #     /opt/unity/Editor/Unity -batchmode -nographics -quit \
-      #       -projectPath . \
-      #       -buildTarget StandaloneLinux64 \
-      #       -executeMethod BuildScript.PerformBuild \
-      #       -logFile /dev/stdout
+      - name: Build Project
+        run: |
+          /opt/unity/Editor/Unity -batchmode -nographics -quit \
+            -projectPath Test/QualityBuddyDev \
+            -buildWindows64Player "build/windows/Game.exe" \
+            -buildLinux64Player "build/linux/Game.x86_64" \
+            -logFile /dev/stdout
 
       - name: Deactivate Unity License
         if: always()
