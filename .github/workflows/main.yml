@@ -21,7 +21,7 @@ jobs:
       - name: Cache Unity installation
         uses: actions/cache@v3
         with:
-          path: ~/.cache/unity
+          path: ~/.cache/unity/Unity-${{ env.UNITY_VERSION }}.tar.xz
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
       - name: Get Unity Download Hash
@@ -36,15 +36,26 @@ jobs:
 
       - name: Download Unity Installer
         run: |
+          set -e
+
           HASH=${{ steps.unity_hash.outputs.hash }}
-          INSTALLER_PATH="$HOME/.cache/unity/Unity-${UNITY_VERSION}.tar.xz"
+          CACHE_DIR="$HOME/.cache/unity"
+          INSTALLER_PATH="$CACHE_DIR/Unity-${UNITY_VERSION}.tar.xz"
+          URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
+
+          echo "📥 Downloading: $URL"
+
+          mkdir -p "$CACHE_DIR"  # ✅ Ensure directory exists
 
           if [ ! -f "$INSTALLER_PATH" ]; then
-            URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
-            echo "📥 Downloading: $URL"
-            wget "$URL" -O "$INSTALLER_PATH"
+            wget -O "$INSTALLER_PATH" "$URL"
           else
             echo "✅ Found Unity installer in cache."
+          fi
+
+          if [ ! -f "$INSTALLER_PATH" ]; then
+            echo "❌ Unity installer not found after download. Exiting."
+            exit 1
           fi
 
           sudo mkdir -p /opt/unity
