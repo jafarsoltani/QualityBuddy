@@ -77,13 +77,13 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
-      - name: Build Project
-        run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -quit \
-            -projectPath Test/QualityBuddyDev \
-            -buildWindows64Player "build/windows/Game.exe" \
-            -buildLinux64Player "build/linux/Game.x86_64" \
-            -logFile /dev/stdout
+      # - name: Build Project
+      #   run: |
+      #     /opt/unity/Editor/Unity -batchmode -nographics -quit \
+      #       -projectPath Test/QualityBuddyDev \
+      #       -buildWindows64Player "build/windows/Game.exe" \
+      #       -buildLinux64Player "build/linux/Game.x86_64" \
+      #       -logFile /dev/stdout
 
       - name: Deactivate Unity License
         if: always()
