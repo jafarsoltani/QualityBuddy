@@ -77,6 +77,13 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
+      - name: Resolve Packages
+        run: |
+          /opt/unity/Editor/Unity -batchmode -nographics \
+            -projectPath . \
+            -quit \
+            -logFile /dev/stdout
+
       - name: Build Project
         run: |
           /opt/unity/Editor/Unity -batchmode -nographics -quit \
