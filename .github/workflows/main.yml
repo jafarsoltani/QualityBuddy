@@ -21,7 +21,7 @@ jobs:
       - name: Cache Unity installation
         uses: actions/cache@v3
         with:
-          path: ~/.cache/unity
+          path: ~/.cache/unity/Unity-${{ env.UNITY_VERSION }}.tar.xz
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
       - name: Get Unity Download Hash
@@ -36,23 +36,33 @@ jobs:
 
       - name: Download Unity Installer
         run: |
-          
+          set -e
+
           HASH=${{ steps.unity_hash.outputs.hash }}
-          
+          CACHE_DIR="$HOME/.cache/unity"
+          INSTALLER_PATH="$CACHE_DIR/Unity-${UNITY_VERSION}.tar.xz"
           URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
+
           echo "📥 Downloading: $URL"
-          wget "$URL"
 
-          mkdir -p /opt/unity
-          tar -xJf Unity-${UNITY_VERSION}.tar.xz -C /opt/unity
+          mkdir -p "$CACHE_DIR"  # ✅ Ensure directory exists
 
+          if [ ! -f "$INSTALLER_PATH" ]; then
+            wget -O "$INSTALLER_PATH" "$URL"
+          else
+            echo "✅ Found Unity installer in cache."
+          fi
+
+          if [ ! -f "$INSTALLER_PATH" ]; then
+            echo "❌ Unity installer not found after download. Exiting."
+            exit 1
+          fi
+
+          ls -lh ~/.cache/unity/Unity-${UNITY_VERSION}.tar.xz
+
+          sudo mkdir -p /opt/unity
+          sudo tar -xJf "$INSTALLER_PATH" -C /opt/unity
           echo "✅ Unity installed to /opt/unity"
-
-      - name: Activate Unity License (Free)
-        if: env.UNITY_LICENSE != ''
-        run: |
-          echo "${UNITY_LICENSE}" > Unity_v${UNITY_VERSION}.ulf
-          /opt/unity/Editor/Unity -batchmode -nographics -manualLicenseFile Unity_v${UNITY_VERSION}.ulf || true
 
       - name: Activate Unity License (Pro)
         run: |
@@ -67,13 +77,13 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
-      # - name: Build Project
-      #   run: |
-      #     /opt/unity/Editor/Unity -batchmode -nographics -quit \
-      #       -projectPath . \
-      #       -buildTarget StandaloneLinux64 \
-      #       -executeMethod BuildScript.PerformBuild \
-      #       -logFile /dev/stdout
+      - name: Build Project
+        run: |
+          /opt/unity/Editor/Unity -batchmode -nographics -quit \
+            -projectPath Test/QualityBuddyDev \
+            -buildWindows64Player "build/windows/Game.exe" \
+            -buildLinux64Player "build/linux/Game.x86_64" \
+            -logFile /dev/stdout
 
       - name: Deactivate Unity License
         if: always()
