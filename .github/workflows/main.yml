@@ -98,10 +98,10 @@ jobs:
             -logFile /dev/stdout
   
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: QualityBuddy-Build
-          path: build/Linux/QualityBuddy.x86_64 
+          path: Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64 
 
       - name: Deactivate Unity License
         if: always()
