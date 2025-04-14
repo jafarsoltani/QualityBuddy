@@ -94,6 +94,7 @@ jobs:
           /opt/unity/Editor/Unity -batchmode -nographics -quit \
             -projectPath Test/QualityBuddyDev \
             -buildTarget StandaloneLinux64 \
+            -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
             -logFile /dev/stdout
 
       - name: Deactivate Unity License
