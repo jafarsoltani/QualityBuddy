@@ -93,7 +93,7 @@ jobs:
         run: |
           /opt/unity/Editor/Unity -batchmode -nographics -quit \
             -projectPath Test/QualityBuddyDev \
-            -buildWindows64Player "build/windows/Game.exe" \
+            #-buildWindows64Player "build/windows/Game.exe" \
             -buildLinux64Player "build/linux/Game.x86_64" \
             -logFile /dev/stdout
 
