@@ -96,7 +96,10 @@ jobs:
             -buildTarget StandaloneLinux64 \
             -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
             -logFile /dev/stdout
-  
+      - name: List Build Folder Contents
+        run: |
+          ls -lh Test/QualityBuddyDev/build/Linux
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
