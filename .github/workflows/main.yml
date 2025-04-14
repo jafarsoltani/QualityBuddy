@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      UNITY_VERSION: 6000.0.3f1
+      UNITY_VERSION: 6000.0.44f1
       UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
       UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
       UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -28,10 +28,10 @@ jobs:
         id: unity_hash
         run: |
           
-          JSON_URL="https://public-cdn.cloud.unity3d.com/hub/prod/releases-linux.json"
+          # JSON_URL="https://public-cdn.cloud.unity3d.com/hub/prod/releases-linux.json"
 
-          HASH=$(curl -s $JSON_URL | jq -r --arg ver "$UNITY_VERSION" '.official[] | select(.version == $ver) | .downloadUrl' | sed 's|.*download_unity/||;s|/.*||')
-
+          # HASH=$(curl -s $JSON_URL | jq -r --arg ver "$UNITY_VERSION" '.official[] | select(.version == $ver) | .downloadUrl' | sed 's|.*download_unity/||;s|/.*||')
+          HASH=101c91f3a8fb
           echo "hash=$HASH" >> $GITHUB_OUTPUT
 
       - name: Download Unity Installer
