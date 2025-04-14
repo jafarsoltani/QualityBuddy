@@ -27,10 +27,6 @@ jobs:
       - name: Get Unity Download Hash
         id: unity_hash
         run: |
-          
-          # JSON_URL="https://public-cdn.cloud.unity3d.com/hub/prod/releases-linux.json"
-
-          # HASH=$(curl -s $JSON_URL | jq -r --arg ver "$UNITY_VERSION" '.official[] | select(.version == $ver) | .downloadUrl' | sed 's|.*download_unity/||;s|/.*||')
           HASH=101c91f3a8fb
           echo "hash=$HASH" >> $GITHUB_OUTPUT
 
@@ -45,7 +41,7 @@ jobs:
 
           echo "📥 Downloading: $URL"
 
-          mkdir -p "$CACHE_DIR"  # ✅ Ensure directory exists
+          mkdir -p "$CACHE_DIR"
 
           if [ ! -f "$INSTALLER_PATH" ]; then
             wget -O "$INSTALLER_PATH" "$URL"
@@ -77,30 +73,36 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
-      # - name: Clear Package Cache
-      #   run: |
-      #     rm -rf Test/QualityBuddyDev/Library/PackageCache
-      #     rm -rf Test/QualityBuddyDev/Library/ScriptAssemblies
-
-      # - name: Resolve Packages
-      #   run: |
-      #     /opt/unity/Editor/Unity -batchmode -nographics \
-      #       -projectPath Test/QualityBuddyDev \
-      #       -quit \
-      #       -logFile /dev/stdout
-
-      - name: Build Project
+      - name: Build Project for Linux
         run: |
           /opt/unity/Editor/Unity -batchmode -nographics -quit \
             -projectPath Test/QualityBuddyDev \
             -buildTarget StandaloneLinux64 \
             -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
             -logFile /dev/stdout
+
+      - name: Build Project for Windows
+        run: |
+          /opt/unity/Editor/Unity -batchmode -nographics -quit \
+            -projectPath Test/QualityBuddyDev \
+            -buildTarget StandaloneWindows64 \
+            -buildWindows64Player build/Windows/QualityBuddy.exe \
+            -logFile /dev/stdout
+
       - name: List Build Folder Contents
         run: |
+          echo "Linux Build Contents:"
           ls -lh Test/QualityBuddyDev/build/Linux
+          echo "Windows Build Contents:"
+          ls -lh Test/QualityBuddyDev/build/Windows
 
-      - name: Upload Artifacts
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: QualityBuddy-Windows
+          path: Test/QualityBuddyDev/build/Windows/**
+          
+      - name: Upload Linux Build
         uses: actions/upload-artifact@v4
         with:
           name: QualityBuddy-Linux
