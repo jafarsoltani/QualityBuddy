@@ -103,8 +103,13 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: QualityBuddy-Build
-          path: Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64 
+          name: QualityBuddy-Linux
+          path: |
+            Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64
+            Test/QualityBuddyDev/build/Linux/UnityPlayer.so
+            Test/QualityBuddyDev/build/Linux/QualityBuddy_Data/**
+            Test/QualityBuddyDev/build/Linux/libdecor-0.so.0
+            Test/QualityBuddyDev/build/Linux/libdecor-cairo.so
 
       - name: Deactivate Unity License
         if: always()
