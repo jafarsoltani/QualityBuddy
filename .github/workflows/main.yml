@@ -96,6 +96,12 @@ jobs:
             -buildTarget StandaloneLinux64 \
             -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
             -logFile /dev/stdout
+  
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: QualityBuddy-Build
+          path: build/Linux/QualityBuddy.x86_64 
 
       - name: Deactivate Unity License
         if: always()
