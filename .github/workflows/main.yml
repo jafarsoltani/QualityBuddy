@@ -77,25 +77,25 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
-      - name: Clear Package Cache
-        run: |
-          rm -rf Test/QualityBuddyDev/Library/PackageCache
-          rm -rf Test/QualityBuddyDev/Library/ScriptAssemblies
+      # - name: Clear Package Cache
+      #   run: |
+      #     rm -rf Test/QualityBuddyDev/Library/PackageCache
+      #     rm -rf Test/QualityBuddyDev/Library/ScriptAssemblies
 
-      - name: Resolve Packages
-        run: |
-          /opt/unity/Editor/Unity -batchmode -nographics \
-            -projectPath Test/QualityBuddyDev \
-            -quit \
-            -logFile /dev/stdout
+      # - name: Resolve Packages
+      #   run: |
+      #     /opt/unity/Editor/Unity -batchmode -nographics \
+      #       -projectPath Test/QualityBuddyDev \
+      #       -quit \
+      #       -logFile /dev/stdout
 
-      - name: Build Project
-        run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -quit \
-            -projectPath Test/QualityBuddyDev \
-            -buildWindows64Player "build/windows/Game.exe" \
-            -buildLinux64Player "build/linux/Game.x86_64" \
-            -logFile /dev/stdout
+      # - name: Build Project
+      #   run: |
+      #     /opt/unity/Editor/Unity -batchmode -nographics -quit \
+      #       -projectPath Test/QualityBuddyDev \
+      #       -buildWindows64Player "build/windows/Game.exe" \
+      #       -buildLinux64Player "build/linux/Game.x86_64" \
+      #       -logFile /dev/stdout
 
       - name: Deactivate Unity License
         if: always()
