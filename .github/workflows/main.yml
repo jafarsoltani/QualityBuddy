@@ -93,8 +93,7 @@ jobs:
         run: |
           /opt/unity/Editor/Unity -batchmode -nographics -quit \
             -projectPath Test/QualityBuddyDev \
-            #-buildWindows64Player "build/windows/Game.exe" \
-            -buildLinux64Player "build/linux/Game.x86_64" \
+            -buildTarget StandaloneLinux64 \
             -logFile /dev/stdout
 
       - name: Deactivate Unity License
