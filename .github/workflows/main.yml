@@ -79,8 +79,8 @@ jobs:
 
       - name: Clear Package Cache
         run: |
-          rm -rf Library/PackageCache
-          rm -rf Library/ScriptAssemblies
+          rm -rf Test/QualityBuddyDev/Library/PackageCache
+          rm -rf Test/QualityBuddyDev/Library/ScriptAssemblies
 
       - name: Resolve Packages
         run: |
