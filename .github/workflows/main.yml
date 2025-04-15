@@ -16,8 +16,8 @@ jobs:
       UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
       UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
       CACHE_DIR: $HOME/.cache/unity
-      INSTALLER_PATH: $HOME/.cache/unity/Unity-${{ env.UNITY_VERSION }}.tar.xz
-      WINDOWS_MODULE_PATH: $HOME/.cache/unity/Unity-WindowsSupport-${{ env.UNITY_VERSION }}.tar.xz
+      INSTALLER_PATH: $HOME/.cache/unity/Unity-6000.0.44f1.tar.xz
+      WINDOWS_MODULE_PATH: $HOME/.cache/unity/Unity-WindowsSupport-6000.0.44f1.tar.xz
       BASE_URL: https://download.unity3d.com/download_unity
 
     steps:
