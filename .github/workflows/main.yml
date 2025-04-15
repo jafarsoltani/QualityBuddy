@@ -127,31 +127,31 @@ jobs:
         run: |
           Get-ChildItem -Path "C:\Unity\Editor" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
 
-      # - name: Activate Unity License (Pro)
-      #   run: |
-      #     & $env:UNITY_PATH `
-      #       -batchmode -nographics -quit `
-      #       -logFile - `
-      #       -serial "$env:UNITY_LICENSE" `
-      #       -username "$env:UNITY_EMAIL" `
-      #       -password "$env:UNITY_PASSWORD"
+      - name: Activate Unity License (Pro)
+        run: |
+          & $env:UNITY_PATH `
+            -batchmode -nographics -quit `
+            -logFile - `
+            -serial "$env:UNITY_LICENSE" `
+            -username "$env:UNITY_EMAIL" `
+            -password "$env:UNITY_PASSWORD"
 
-      # - name: Build Project for Windows
-      #   run: |
-      #     & $env:UNITY_PATH -batchmode -nographics -quit `
-      #       -projectPath Test/QualityBuddyDev `
-      #       -buildTarget StandaloneWindows64 `
-      #       -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
-      #       -logFile -
+      - name: Build Project for Windows
+        run: |
+          & $env:UNITY_PATH -batchmode -nographics -quit `
+            -projectPath Test/QualityBuddyDev `
+            -buildTarget StandaloneWindows64 `
+            -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
+            -logFile -
 
-      # - name: Upload Windows Build
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: QualityBuddy-Windows
-      #     path: |
-      #       Test/QualityBuddyDev/build/Windows/QualityBuddy.exe
-      #       Test/QualityBuddyDev/build/Windows/UnityPlayer.dll
-      #       Test/QualityBuddyDev/build/Windows/QualityBuddy_Data/**
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: QualityBuddy-Windows
+          path: |
+            Test/QualityBuddyDev/build/Windows/QualityBuddy.exe
+            Test/QualityBuddyDev/build/Windows/UnityPlayer.dll
+            Test/QualityBuddyDev/build/Windows/QualityBuddy_Data/**
 
       - name: List Unity license files
         run: |
@@ -171,7 +171,7 @@ jobs:
           }
 
 
-      # - name: Deactivate Unity License
-      #   if: always()
-      #   run: |
-      #     & $env:UNITY_PATH -batchmode -nographics -returnlicense -logFile - || true
+      - name: Deactivate Unity License
+        if: always()
+        run: |
+          & $env:UNITY_PATH -batchmode -nographics -returnlicense -logFile - || true
