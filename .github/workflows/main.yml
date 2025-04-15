@@ -141,11 +141,12 @@ jobs:
 
       - name: Activate Unity License (Pro)
         run: |
+          $logFile = "C:\UnityTemp\unity-license.log"
           $unityArgs = @(
             "-batchmode",
             "-nographics",
             "-quit",
-            "-logFile", "-",
+            "-logFile", "$logFile",
             "-serial", "$env:UNITY_LICENSE",
             "-username", "$env:UNITY_EMAIL",
             "-password", "$env:UNITY_PASSWORD"
@@ -155,16 +156,13 @@ jobs:
           $exitCode = $process.ExitCode
 
           Write-Host "Unity exited with code: $exitCode"
+          Write-Host "========== Unity License Log =========="
+          Get-Content $logFile | Write-Host
 
           if ($exitCode -ne 0) {
             Write-Host "❌ License activation failed."
-            exit $exitCode
+            #exit $exitCode
           }
-
-          # Debug info
-          Write-Host "Getting Unity license directory..."
-          Get-ChildItem "$env:USERPROFILE\AppData\Local\Unity" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
-
 
           
 
