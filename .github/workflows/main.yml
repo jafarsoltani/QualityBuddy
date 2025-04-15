@@ -41,6 +41,16 @@ jobs:
       #       ${{ env.WINDOWS_MODULE_PATH }}
       #     key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
+      - name: Check Available Modules
+        run: |
+          HASH=101c91f3a8fb
+          VERSION=6000.0.44f1
+          
+          # Try to get the modules list
+          curl -s "https://download.unity3d.com/download_unity/${HASH}/unity-${VERSION}-modules.json" || \
+          curl -s "https://download.unity3d.com/download_unity/${HASH}/unity-modules.json"
+
+
       - name: Download Unity Installer
         run: |
           set -e
