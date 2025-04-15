@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  linux-build:
+  build-linux:
     runs-on: ubuntu-latest
     env:
       UNITY_VERSION: 6000.0.44f1
