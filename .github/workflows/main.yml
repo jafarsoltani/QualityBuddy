@@ -82,6 +82,7 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    needs: build-linux # Ensure Linux build is completed first as we have 1 license.
     env:
       UNITY_VERSION: 6000.0.44f1
       HASH: 101c91f3a8fb
@@ -110,10 +111,14 @@ jobs:
 
       - name: Install Unity
         run: |
-          Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\\Unity\\Editor" -Wait
+          Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\\Unity" -Wait
 
       - name: Add Unity to PATH
         run: echo "C:\\Unity\\Editor" | Out-File -Append $env:GITHUB_PATH
+
+      - name: Check Unity Path
+        run: |
+          Get-ChildItem -Path "C:\\Unity\\Editor" -Recurse -Filter Unity.exe
 
       - name: Activate Unity License (Pro)
         run: |
