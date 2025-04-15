@@ -103,7 +103,22 @@ jobs:
           path: C:\\Unity\\UnitySetup64.exe
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
-      - name: Download Unity Installer
+      - name: Create Unity directories
+        run: |
+          $directories = @(
+            "C:\Users\runneradmin\AppData\Local\Unity\Caches",
+            "C:\Users\runneradmin\AppData\Local\Unity",
+            "C:\ProgramData\Unity",
+            "C:\ProgramData\Unity\config",
+            "C:\UnityTemp"
+          )
+          
+          foreach ($dir in $directories) {
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+            Write-Host "Created directory: $dir"
+          }
+
+      - name: Download Unity Installer and Licesning Support
         run: |
           $ErrorActionPreference = "Stop"
 
@@ -116,38 +131,60 @@ jobs:
             Write-Host "✅ Found Unity installer in cache."
           }
 
-          # Download Windows Licensing Support
-          Write-Host "Downloading Windows Licensing Support..."
-          Invoke-WebRequest "${env:BASE_URL}/${env:HASH}/TargetSupportInstaller/UnitySetup-Windows-Support-for-Editor-${env:UNITY_VERSION}.exe" -OutFile "C:\Unity\WindowsSupport.exe"
+          # # Download Windows Licensing Support
+          # Write-Host "Downloading Windows Licensing Support ${env:BASE_URL}/${env:HASH}/TargetSupportInstaller/UnitySetup-Windows-Support-for-Editor-${env:UNITY_VERSION}.exe"
+          # Invoke-WebRequest "${env:BASE_URL}/${env:HASH}/TargetSupportInstaller/UnitySetup-Windows-Support-for-Editor-${env:UNITY_VERSION}.exe" -OutFile "C:\Unity\WindowsSupport.exe"
+          
 
-      - name: Create Unity directories
-        run: |
-          New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity" | Write-Host
-          New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity\Caches" | Write-Host
-          New-Item -ItemType Directory -Force -Path "C:\ProgramData\Unity" | Write-Host
+      # - name: Create Unity directories
+      #   run: |
+      #     New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity" | Write-Host
+      #     New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity\Caches" | Write-Host
+      #     New-Item -ItemType Directory -Force -Path "C:\ProgramData\Unity" | Write-Host
 
       - name: Install Unity and Support
         run: |
           Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\Unity" -Wait
 
-          # Install Windows Support
-          Start-Process -FilePath "C:\Unity\WindowsSupport.exe" -ArgumentList "/S /D=C:\Unity" -Wait
+          # # Install Windows Support
+          # Start-Process -FilePath "C:\Unity\WindowsSupport.exe" -ArgumentList "/S /D=C:\Unity" -Wait
 
-      - name: Add Unity to PATH
-        run: echo "C:\Unity\Editor" | Out-File -Append $env:GITHUB_PATH
+      # - name: Add Unity to PATH
+      #   run: echo "C:\Unity\Editor" | Out-File -Append $env:GITHUB_PATH
 
       - name: Check Unity Path
         run: |
           Get-ChildItem -Path "C:\Unity" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
 
+      - name: Configure Unity Services
+        run: |
+          $config = @{
+            licensingServiceBaseUrl = "https://license.unity3d.com"
+            enableEntitlementLicensing = $true
+            clientConnectTimeoutSec = 60
+            clientHandshakeTimeoutSec = 60
+            clientResolveEntitlementsTimeoutSec = 60
+            clientUpdateLicenseTimeoutSec = 60
+          }
+          
+          $config | ConvertTo-Json | Out-File -Encoding UTF8 "C:\ProgramData\Unity\config\services-config.json"
+          Write-Host "Created services config file"
+
       - name: Activate Unity License (Pro)
         run: |
           & $env:UNITY_PATH `
-            -batchmode -nographics -quit `
+            -batchmode -nographics `
+            -projectPath "C:\UnityTemp" `
             -logFile - `
             -serial "$env:UNITY_LICENSE" `
             -username "$env:UNITY_EMAIL" `
-            -password "$env:UNITY_PASSWORD"
+            -password "$env:UNITY_PASSWORD" `
+            -quit
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "License activation failed with exit code: $LASTEXITCODE"
+            exit 1
+          }
 
       # - name: Debug License Content
       #   run: |
@@ -163,6 +200,11 @@ jobs:
             -buildTarget StandaloneWindows64 `
             -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
             -logFile -
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Build failed with exit code: $LASTEXITCODE"
+            exit 1
+          }
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
