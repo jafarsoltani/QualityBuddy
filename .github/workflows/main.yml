@@ -97,6 +97,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Cache Unity installer (Windows)
+        uses: actions/cache@v3
+        with:
+          path: ${env:INSTALLER_PATH}
+          key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
+
       - name: Download Unity Installer
         run: |
           $ErrorActionPreference = "Stop"
@@ -123,19 +129,19 @@ jobs:
 
       - name: Activate Unity License (Pro)
         run: |
-          $env:UNITY_PATH \
-            -batchmode -nographics -quit \
-            -logFile - \
-            -serial "$env:UNITY_LICENSE" \
-            -username "$env:UNITY_EMAIL" \
+          & $env:UNITY_PATH `
+            -batchmode -nographics -quit `
+            -logFile - `
+            -serial "$env:UNITY_LICENSE" `
+            -username "$env:UNITY_EMAIL" `
             -password "$env:UNITY_PASSWORD"
 
       - name: Build Project for Windows
         run: |
-          $env:UNITY_PATH -batchmode -nographics -quit \
-            -projectPath Test/QualityBuddyDev \
-            -buildTarget StandaloneWindows64 \
-            -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe \
+          & $env:UNITY_PATH -batchmode -nographics -quit `
+            -projectPath Test/QualityBuddyDev `
+            -buildTarget StandaloneWindows64 `
+            -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
             -logFile -
 
       - name: Upload Windows Build
@@ -150,4 +156,4 @@ jobs:
       - name: Deactivate Unity License
         if: always()
         run: |
-          Unity.exe -batchmode -nographics -returnlicense -logFile - || true
+          $env:UNITY_PATH -batchmode -nographics -returnlicense -logFile - || true
