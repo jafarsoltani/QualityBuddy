@@ -100,7 +100,7 @@ jobs:
       - name: Cache Unity installer (Windows)
         uses: actions/cache@v3
         with:
-          path: ${{env:INSTALLER_PATH}}
+          path: C:\\Unity\\UnitySetup64.exe
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
       - name: Download Unity Installer
