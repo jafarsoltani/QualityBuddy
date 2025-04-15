@@ -138,14 +138,28 @@ jobs:
           # Create license file directory
           New-Item -ItemType Directory -Force -Path "C:\ProgramData\Unity\Unity" | Out-Null
           
-          # Write license file
-          $env:UNITY_LICENSE | Out-File -Encoding UTF8 "C:\ProgramData\Unity\Unity\Unity_lic.ulf"
+          # Write license file - ensure proper encoding and no BOM
+          [System.IO.File]::WriteAllText(
+            "C:\ProgramData\Unity\Unity\Unity_lic.ulf",
+            $env:UNITY_LICENSE,
+            [System.Text.Encoding]::UTF8
+          )
+          
+          # Verify file content
+          Get-Content "C:\ProgramData\Unity\Unity\Unity_lic.ulf" | Out-String | Write-Host
           
           # Activate license
           & $env:UNITY_PATH `
             -batchmode -nographics -quit `
             -logFile - `
             -manualLicenseFile "C:\ProgramData\Unity\Unity\Unity_lic.ulf"
+
+      - name: Debug License Content
+        run: |
+          Write-Host "License content length: $($env:UNITY_LICENSE.Length)"
+          Write-Host "First 100 characters:"
+          Write-Host $env:UNITY_LICENSE.Substring(0, [Math]::Min(100, $env:UNITY_LICENSE.Length))
+
 
       - name: Build Project for Windows
         run: |
