@@ -118,9 +118,9 @@ jobs:
 
       - name: Create Unity directories
         run: |
-          New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity" | Out-Null
-          New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity\Caches" | Out-Null
-          New-Item -ItemType Directory -Force -Path "C:\ProgramData\Unity" | Out-Null
+          New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity" | Write-Host
+          New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity\Caches" | Write-Host
+          New-Item -ItemType Directory -Force -Path "C:\ProgramData\Unity" | Write-Host
 
       - name: Install Unity
         run: |
@@ -131,34 +131,22 @@ jobs:
 
       - name: Check Unity Path
         run: |
-          Get-ChildItem -Path "C:\Unity\Editor" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
+          Get-ChildItem -Path "C:\Unity" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
 
-      - name: Activate Unity License
+      - name: Activate Unity License (Pro)
         run: |
-          # Create license file directory
-          New-Item -ItemType Directory -Force -Path "C:\ProgramData\Unity\Unity" | Out-Null
-          
-          # Write license file - ensure proper encoding and no BOM
-          [System.IO.File]::WriteAllText(
-            "C:\ProgramData\Unity\Unity\Unity_lic.ulf",
-            $env:UNITY_LICENSE,
-            [System.Text.Encoding]::UTF8
-          )
-          
-          # Verify file content
-          Get-Content "C:\ProgramData\Unity\Unity\Unity_lic.ulf" | Out-String | Write-Host
-          
-          # Activate license
           & $env:UNITY_PATH `
             -batchmode -nographics -quit `
             -logFile - `
-            -manualLicenseFile "C:\ProgramData\Unity\Unity\Unity_lic.ulf"
+            -serial "$env:UNITY_LICENSE" `
+            -username "$env:UNITY_EMAIL" `
+            -password "$env:UNITY_PASSWORD"
 
-      - name: Debug License Content
-        run: |
-          Write-Host "License content length: $($env:UNITY_LICENSE.Length)"
-          Write-Host "First 100 characters:"
-          Write-Host $env:UNITY_LICENSE.Substring(0, [Math]::Min(100, $env:UNITY_LICENSE.Length))
+      # - name: Debug License Content
+      #   run: |
+      #     Write-Host "License content length: $($env:UNITY_LICENSE.Length)"
+      #     Write-Host "First 100 characters:"
+      #     Write-Host $env:UNITY_LICENSE.Substring(0, [Math]::Min(100, $env:UNITY_LICENSE.Length))
 
 
       - name: Build Project for Windows
