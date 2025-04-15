@@ -125,35 +125,40 @@ jobs:
 
       - name: Check Unity Path
         run: |
-          Get-ChildItem -Path "C:\Unity" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
+          Get-ChildItem -Path "C:\Unity\Editor" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
 
-      - name: Activate Unity License (Pro)
+      # - name: Activate Unity License (Pro)
+      #   run: |
+      #     & $env:UNITY_PATH `
+      #       -batchmode -nographics -quit `
+      #       -logFile - `
+      #       -serial "$env:UNITY_LICENSE" `
+      #       -username "$env:UNITY_EMAIL" `
+      #       -password "$env:UNITY_PASSWORD"
+
+      # - name: Build Project for Windows
+      #   run: |
+      #     & $env:UNITY_PATH -batchmode -nographics -quit `
+      #       -projectPath Test/QualityBuddyDev `
+      #       -buildTarget StandaloneWindows64 `
+      #       -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
+      #       -logFile -
+
+      # - name: Upload Windows Build
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: QualityBuddy-Windows
+      #     path: |
+      #       Test/QualityBuddyDev/build/Windows/QualityBuddy.exe
+      #       Test/QualityBuddyDev/build/Windows/UnityPlayer.dll
+      #       Test/QualityBuddyDev/build/Windows/QualityBuddy_Data/**
+      - name: List license cache
         run: |
-          & $env:UNITY_PATH `
-            -batchmode -nographics -quit `
-            -logFile - `
-            -serial "$env:UNITY_LICENSE" `
-            -username "$env:UNITY_EMAIL" `
-            -password "$env:UNITY_PASSWORD"
+          Get-ChildItem -Path "C:\ProgramData\Unity" -Recurse | Out-String | Write-Host
 
-      - name: Build Project for Windows
-        run: |
-          & $env:UNITY_PATH -batchmode -nographics -quit `
-            -projectPath Test/QualityBuddyDev `
-            -buildTarget StandaloneWindows64 `
-            -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
-            -logFile -
 
-      - name: Upload Windows Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: QualityBuddy-Windows
-          path: |
-            Test/QualityBuddyDev/build/Windows/QualityBuddy.exe
-            Test/QualityBuddyDev/build/Windows/UnityPlayer.dll
-            Test/QualityBuddyDev/build/Windows/QualityBuddy_Data/**
 
-      - name: Deactivate Unity License
-        if: always()
-        run: |
-          $env:UNITY_PATH -batchmode -nographics -returnlicense -logFile - || true
+      # - name: Deactivate Unity License
+      #   if: always()
+      #   run: |
+      #     & $env:UNITY_PATH -batchmode -nographics -returnlicense -logFile - || true
