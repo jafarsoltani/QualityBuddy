@@ -141,25 +141,29 @@ jobs:
 
       - name: Activate Unity License (Pro)
         run: |
-          & $env:UNITY_PATH `
-            -batchmode -nographics -quit `
-            -logFile - `
-            -serial "$env:UNITY_LICENSE" `
-            -username "$env:UNITY_EMAIL" `
-            -password "$env:UNITY_PASSWORD" `
-            
-          Write-Host "Unity command completed. LASTEXITCODE=$LASTEXITCODE"
+          $unityArgs = @(
+            "-batchmode",
+            "-nographics",
+            "-quit",
+            "-logFile", "-",
+            "-serial", "$env:UNITY_LICENSE",
+            "-username", "$env:UNITY_EMAIL",
+            "-password", "$env:UNITY_PASSWORD"
+          )
 
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "License activation failed with exit code: $LASTEXITCODE"
+          $process = Start-Process -FilePath "$env:UNITY_PATH" -ArgumentList $unityArgs -Wait -PassThru
+          $exitCode = $process.ExitCode
+
+          Write-Host "Unity exited with code: $exitCode"
+
+          if ($exitCode -ne 0) {
+            Write-Host "❌ License activation failed."
+            exit $exitCode
           }
 
-          Write-Host "Adding some debugging"
-          Write-Host "Getting the content of C:\ProgramData\Unity"
-          Get-ChildItem "C:\ProgramData\Unity" -Recurse | Out-String | Write-Host
-
-          Write-Host "Check if Unity license file exists $env:USERPROFILE\AppData\Local\Unity\unity_lic.ulf"
-          Get-ChildItem "$env:USERPROFILE\AppData\Local\Unity\unity_lic.ulf" -ErrorAction SilentlyContinue
+          # Debug info
+          Write-Host "Getting Unity license directory..."
+          Get-ChildItem "$env:USERPROFILE\AppData\Local\Unity" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
 
 
           
