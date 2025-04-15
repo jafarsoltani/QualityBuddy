@@ -181,12 +181,31 @@ jobs:
             -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
             -logFile -
           
-          Write-Host "Unity command completed. LASTEXITCODE=$LASTEXITCODE"
+          $logFile = "C:\UnityTemp\unity-build.log"
+          $unityArgs = @(
+            "-batchmode",
+            "-nographics",
+            "-quit",
+            "-logFile", "$logFile",
+            "-projectPath", "Test/QualityBuddyDev",
+            "-buildWindows64Player", "Test/QualityBuddyDev/build/Windows/QualityBuddy.exe"
+          )
 
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "Build failed with exit code: $LASTEXITCODE"
-            #exit 1
+          $process = Start-Process -FilePath "$env:UNITY_PATH" -ArgumentList $unityArgs -Wait -PassThru
+          $exitCode = $process.ExitCode
+
+          Write-Host "Unity exited with code: $exitCode"
+          Write-Host "========== Unity License Log =========="
+          Get-Content $logFile | Write-Host
+
+          if ($exitCode -ne 0) {
+            Write-Host "❌ Build failed."
+            #exit $exitCode
           }
+      
+      - name: Check Unity Build Output
+        run: 
+          Get-ChildItem -Path "Test\QualityBuddyDev\build" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
