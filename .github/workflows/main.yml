@@ -51,6 +51,27 @@ jobs:
           curl -s "https://download.unity3d.com/download_unity/${HASH}/unity-modules.json"
 
 
+      - name: Download Windows Support
+        run: |
+          VERSION="6000.0.44f1"
+          HASH="101c91f3a8fb"
+          
+          # Try different possible URL patterns
+          URLS=(
+            "https://download.unity3d.com/download_unity/${HASH}/Windows64EditorTargetInstaller/UnitySetup-Windows-Mono-Support-for-Editor-${VERSION}.tar.xz"
+            "https://download.unity3d.com/download_unity/${HASH}/LinuxEditorTargetInstaller/UnitySetup-Windows-Support-for-Editor-${VERSION}.tar.xz"
+            "https://download.unity3d.com/download_unity/${HASH}/TargetSupportInstaller/UnitySetup-Windows-Support-for-Editor-${VERSION}.tar.xz"
+          )
+          
+          for URL in "${URLS[@]}"; do
+            echo "Trying URL: $URL"
+            if wget --spider "$URL" 2>/dev/null; then
+              echo "Found valid URL: $URL"
+              wget "$URL"
+              break
+            fi
+          done
+
       - name: Download Unity Installer
         run: |
           set -e
