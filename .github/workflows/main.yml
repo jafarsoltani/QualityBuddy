@@ -182,13 +182,21 @@ jobs:
           #   -logFile -
           
           $logFile = "C:\UnityTemp\unity-build.log"
+          # $unityArgs = @(
+          #   "-batchmode",
+          #   "-nographics",
+          #   "-quit",
+          #   "-logFile", "$logFile",
+          #   "-projectPath", "Test/QualityBuddyDev",
+          #   "-buildWindows64Player", "Test/QualityBuddyDev/build/Windows/QualityBuddy.exe"
+          # )
           $unityArgs = @(
             "-batchmode",
             "-nographics",
             "-quit",
             "-logFile", "$logFile",
             "-projectPath", "Test/QualityBuddyDev",
-            "-buildWindows64Player", "Test/QualityBuddyDev/build/Windows/QualityBuddy.exe"
+            "-buildWindows64Player", "build/Windows/QualityBuddy.exe"
           )
 
           $process = Start-Process -FilePath "$env:UNITY_PATH" -ArgumentList $unityArgs -Wait -PassThru
@@ -204,8 +212,9 @@ jobs:
           }
       
       - name: Check Unity Build Output
-        run: 
-          Get-ChildItem -Path "Test\QualityBuddyDev\build" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
+        run: |
+          Write-Host "PWD: $(Get-Location)"
+          Get-ChildItem -Path "$pwd\Test\QualityBuddyDev\build" -Recurse -Force -ErrorAction SilentlyContinue | Out-String | Write-Host
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
