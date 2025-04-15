@@ -152,10 +152,23 @@ jobs:
       #       Test/QualityBuddyDev/build/Windows/QualityBuddy.exe
       #       Test/QualityBuddyDev/build/Windows/UnityPlayer.dll
       #       Test/QualityBuddyDev/build/Windows/QualityBuddy_Data/**
-      - name: List license cache
-        run: |
-          Get-ChildItem -Path "C:\ProgramData\Unity" -Recurse | Out-String | Write-Host
 
+      - name: List Unity license files
+        run: |
+          $paths = @(
+            "C:\ProgramData\Unity",
+            "$env:USERPROFILE\AppData\Local\Unity",
+            "$env:USERPROFILE\AppData\Roaming\Unity"
+          )
+
+          foreach ($path in $paths) {
+            Write-Host "🔍 Listing files in $path"
+            if (Test-Path $path) {
+              Get-ChildItem -Path $path -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
+            } else {
+              Write-Host "❌ $path not found"
+            }
+          }
 
 
       # - name: Deactivate Unity License
