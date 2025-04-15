@@ -175,11 +175,11 @@ jobs:
 
       - name: Build Project for Windows
         run: |
-          & $env:UNITY_PATH -batchmode -nographics -quit `
-            -projectPath Test/QualityBuddyDev `
-            -buildTarget StandaloneWindows64 `
-            -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
-            -logFile -
+          # & $env:UNITY_PATH -batchmode -nographics -quit `
+          #   -projectPath Test/QualityBuddyDev `
+          #   -buildTarget StandaloneWindows64 `
+          #   -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe `
+          #   -logFile -
           
           $logFile = "C:\UnityTemp\unity-build.log"
           $unityArgs = @(
