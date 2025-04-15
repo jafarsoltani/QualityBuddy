@@ -21,7 +21,9 @@ jobs:
       - name: Cache Unity installation
         uses: actions/cache@v3
         with:
-          path: ~/.cache/unity/Unity-${{ env.UNITY_VERSION }}.tar.xz
+          path: |
+            ~/.cache/unity/Unity-${{ env.UNITY_VERSION }}.tar.xz
+            ~/.cache/unity/Unity-WindowsSupport-${{ env.UNITY_VERSION }}.tar.xz
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
       - name: Get Unity Download Hash
@@ -38,8 +40,12 @@ jobs:
           CACHE_DIR="$HOME/.cache/unity"
           INSTALLER_PATH="$CACHE_DIR/Unity-${UNITY_VERSION}.tar.xz"
           URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
-
+          # Download Windows build support
+          WINDOWS_URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorTargetInstaller/UnitySetup-Windows-IL2CPP-Support-for-Editor-${UNITY_VERSION}.tar.xz"
+          WINDOWS_MODULE_PATH="$CACHE_DIR/Unity-WindowsSupport-${UNITY_VERSION}.tar.xz"
+          
           echo "📥 Downloading: $URL"
+          echo "📥 Downloading Windows Support: $WINDOWS_URL"
 
           mkdir -p "$CACHE_DIR"
 
@@ -49,12 +55,25 @@ jobs:
             echo "✅ Found Unity installer in cache."
           fi
 
+          if [ ! -f "$WINDOWS_MODULE_PATH" ]; then
+            wget -O "$WINDOWS_MODULE_PATH" "$URL"
+          else
+            echo "✅ Found Windows module in cache."
+          fi
+
           if [ ! -f "$INSTALLER_PATH" ]; then
             echo "❌ Unity installer not found after download. Exiting."
             exit 1
           fi
 
-          ls -lh ~/.cache/unity/Unity-${UNITY_VERSION}.tar.xz
+          if [ ! -f "$WINDOWS_MODULE_PATH" ]; then
+            echo "❌ Windows module not found after download. Exiting."
+            exit 1
+          fi
+
+          #ls -lh ~/.cache/unity/Unity-${UNITY_VERSION}.tar.xz
+          ls -lh $INSTALLER_PATH
+          ls -lh $WINDOWS_MODULE_PATH
 
           sudo mkdir -p /opt/unity
           sudo tar -xJf "$INSTALLER_PATH" -C /opt/unity
