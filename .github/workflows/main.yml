@@ -100,7 +100,7 @@ jobs:
       - name: Cache Unity installer (Windows)
         uses: actions/cache@v3
         with:
-          path: ${env:INSTALLER_PATH}
+          path: ${{env:INSTALLER_PATH}}
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
       - name: Download Unity Installer
@@ -116,15 +116,22 @@ jobs:
             Write-Host "✅ Found Unity installer in cache."
           }
 
+          # Download Windows Licensing Support
+          Write-Host "Downloading Windows Licensing Support..."
+          Invoke-WebRequest "${env:BASE_URL}/${env:HASH}/TargetSupportInstaller/UnitySetup-Windows-Support-for-Editor-${env:UNITY_VERSION}.exe" -OutFile "C:\Unity\WindowsSupport.exe"
+
       - name: Create Unity directories
         run: |
           New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity" | Write-Host
           New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity\Caches" | Write-Host
           New-Item -ItemType Directory -Force -Path "C:\ProgramData\Unity" | Write-Host
 
-      - name: Install Unity
+      - name: Install Unity and Support
         run: |
           Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\Unity" -Wait
+
+          # Install Windows Support
+          Start-Process -FilePath "C:\Unity\WindowsSupport.exe" -ArgumentList "/S /D=C:\Unity" -Wait
 
       - name: Add Unity to PATH
         run: echo "C:\Unity\Editor" | Out-File -Append $env:GITHUB_PATH
@@ -183,6 +190,12 @@ jobs:
             }
           }
 
+      - name: Upload license log
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unity.Licensing.Client.log
+          path: |
+            C:\Users\runneradmin\AppData\Local\Unity\Unity.Licensing.Client.log
 
       - name: Deactivate Unity License
         if: always()
