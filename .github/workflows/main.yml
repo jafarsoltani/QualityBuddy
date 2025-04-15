@@ -6,83 +6,83 @@ on:
   pull_request:
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    env:
-      UNITY_VERSION: 6000.0.44f1
-      HASH: 101c91f3a8fb
-      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-      CACHE_DIR: $HOME/.cache/unity
-      INSTALLER_PATH: $HOME/.cache/unity/Unity-6000.0.44f1.tar.xz
-      BASE_URL: https://download.unity3d.com/download_unity
+  # build-linux:
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     UNITY_VERSION: 6000.0.44f1
+  #     HASH: 101c91f3a8fb
+  #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+  #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+  #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  #     CACHE_DIR: $HOME/.cache/unity
+  #     INSTALLER_PATH: $HOME/.cache/unity/Unity-6000.0.44f1.tar.xz
+  #     BASE_URL: https://download.unity3d.com/download_unity
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v4
 
-      - name: Prepare cache directory
-        run: mkdir -p ~/.cache/unity
+  #     - name: Prepare cache directory
+  #       run: mkdir -p ~/.cache/unity
 
-      - name: Cache Unity installation
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/unity
-          key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
+  #     - name: Cache Unity installation
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: ~/.cache/unity
+  #         key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
-      - name: Download Unity Installer
-        run: |
-          set -e
+  #     - name: Download Unity Installer
+  #       run: |
+  #         set -e
 
-          echo "📅 Downloading Unity Editor"
+  #         echo "📅 Downloading Unity Editor"
 
-          if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
-            wget -O "${{ env.INSTALLER_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorInstaller/Unity-${{ env.UNITY_VERSION }}.tar.xz"
-          else
-            echo "✅ Found Unity installer in cache."
-          fi
+  #         if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
+  #           wget -O "${{ env.INSTALLER_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorInstaller/Unity-${{ env.UNITY_VERSION }}.tar.xz"
+  #         else
+  #           echo "✅ Found Unity installer in cache."
+  #         fi
 
-          sudo mkdir -p /opt/unity
-          sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
-          echo "✅ Unity installed to /opt/unity"
+  #         sudo mkdir -p /opt/unity
+  #         sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
+  #         echo "✅ Unity installed to /opt/unity"
 
-      - name: Activate Unity License (Pro)
-        run: |
-          /opt/unity/Editor/Unity \
-            -batchmode -nographics -quit \
-            -logFile - \
-            -serial "$UNITY_LICENSE" \
-            -username "$UNITY_EMAIL" \
-            -password "$UNITY_PASSWORD"
+  #     - name: Activate Unity License (Pro)
+  #       run: |
+  #         /opt/unity/Editor/Unity \
+  #           -batchmode -nographics -quit \
+  #           -logFile - \
+  #           -serial "$UNITY_LICENSE" \
+  #           -username "$UNITY_EMAIL" \
+  #           -password "$UNITY_PASSWORD"
 
-      - name: Build Project for Linux
-        run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -quit \
-            -projectPath Test/QualityBuddyDev \
-            -buildTarget StandaloneLinux64 \
-            -buildLinux64Player Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64 \
-            -logFile /dev/stdout
+  #     - name: Build Project for Linux
+  #       run: |
+  #         /opt/unity/Editor/Unity -batchmode -nographics -quit \
+  #           -projectPath Test/QualityBuddyDev \
+  #           -buildTarget StandaloneLinux64 \
+  #           -buildLinux64Player Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64 \
+  #           -logFile /dev/stdout
 
-      - name: Upload Linux Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: QualityBuddy-Linux
-          path: |
-            Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64
-            Test/QualityBuddyDev/build/Linux/UnityPlayer.so
-            Test/QualityBuddyDev/build/Linux/QualityBuddy_Data/**
-            Test/QualityBuddyDev/build/Linux/libdecor-0.so.0
-            Test/QualityBuddyDev/build/Linux/libdecor-cairo.so
+  #     - name: Upload Linux Build
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: QualityBuddy-Linux
+  #         path: |
+  #           Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64
+  #           Test/QualityBuddyDev/build/Linux/UnityPlayer.so
+  #           Test/QualityBuddyDev/build/Linux/QualityBuddy_Data/**
+  #           Test/QualityBuddyDev/build/Linux/libdecor-0.so.0
+  #           Test/QualityBuddyDev/build/Linux/libdecor-cairo.so
 
-      - name: Deactivate Unity License
-        if: always()
-        run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -returnlicense -logFile /dev/stdout || true
+  #     - name: Deactivate Unity License
+  #       if: always()
+  #       run: |
+  #         /opt/unity/Editor/Unity -batchmode -nographics -returnlicense -logFile /dev/stdout || true
 
   build-windows:
     runs-on: windows-latest
-    needs: build-linux # Ensure Linux build is completed first as we have 1 license.
+    #needs: build-linux # Ensure Linux build is completed first as we have 1 license.
     env:
       UNITY_VERSION: 6000.0.44f1
       HASH: 101c91f3a8fb
@@ -91,6 +91,7 @@ jobs:
       UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
       BASE_URL: https://download.unity3d.com/download_unity
       INSTALLER_PATH: C:\\Unity\\UnitySetup64.exe
+      UNITY_PATH: C:\\Unity\\Editor\\Unity.exe
 
     steps:
       - name: Checkout repo
@@ -118,11 +119,11 @@ jobs:
 
       - name: Check Unity Path
         run: |
-          Get-ChildItem -Path "C:\\Unity\\Editor" -Recurse -Filter Unity.exe
+          Get-ChildItem -Path "C:\\Unity\\Editor" -Recurse
 
       - name: Activate Unity License (Pro)
         run: |
-          Unity.exe \
+          $env:UNITY_PATH \
             -batchmode -nographics -quit \
             -logFile - \
             -serial "$env:UNITY_LICENSE" \
@@ -131,7 +132,7 @@ jobs:
 
       - name: Build Project for Windows
         run: |
-          Unity.exe -batchmode -nographics -quit \
+          $env:UNITY_PATH -batchmode -nographics -quit \
             -projectPath Test/QualityBuddyDev \
             -buildTarget StandaloneWindows64 \
             -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe \
