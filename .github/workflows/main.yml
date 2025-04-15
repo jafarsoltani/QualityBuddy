@@ -103,6 +103,10 @@ jobs:
           path: C:\\Unity\\UnitySetup64.exe
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
+      - name: List installed Unity versions
+        run: |
+          Get-ChildItem "C:\Program Files\Unity\Hub\Editor" | Select-Object Name
+
       - name: Create Unity directories
         run: |
           $directories = @(
@@ -234,6 +238,7 @@ jobs:
 
       - name: Upload license log
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: Unity.Licensing.Client.log
           path: |
