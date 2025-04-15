@@ -123,7 +123,7 @@ jobs:
             Write-Host "Created directory: $dir"
           }
 
-      - name: Download Unity Installer and Licesning Support
+      - name: Download Unity Installer
         run: |
           $ErrorActionPreference = "Stop"
 
@@ -147,7 +147,7 @@ jobs:
       #     New-Item -ItemType Directory -Force -Path "C:\Users\runneradmin\AppData\Local\Unity\Caches" | Write-Host
       #     New-Item -ItemType Directory -Force -Path "C:\ProgramData\Unity" | Write-Host
 
-      - name: Install Unity and Support
+      - name: Install Unity Editor
         run: |
           Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\Unity" -Wait
 
@@ -179,7 +179,6 @@ jobs:
         run: |
           & $env:UNITY_PATH `
             -batchmode -nographics `
-            #-projectPath "C:\UnityTemp" `
             -logFile - `
             -serial "$env:UNITY_LICENSE" `
             -username "$env:UNITY_EMAIL" `
