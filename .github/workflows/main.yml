@@ -185,6 +185,11 @@ jobs:
             -password "$env:UNITY_PASSWORD" `
             -quit
 
+          Write-Host "Adding some debugging"
+          Get-ChildItem "C:\ProgramData\Unity" -Recurse | Out-String | Write-Host
+          Get-ChildItem "$env:USERPROFILE\AppData\Local\Unity\unity_lic.ulf" -ErrorAction SilentlyContinue
+
+
           if ($LASTEXITCODE -ne 0) {
             Write-Host "License activation failed with exit code: $LASTEXITCODE"
             exit 1
