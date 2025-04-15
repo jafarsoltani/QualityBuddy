@@ -10,9 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       UNITY_VERSION: 6000.0.44f1
+      HASH: 101c91f3a8fb
+
       UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
       UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
       UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      CACHE_DIR: $HOME/.cache/unity
+      INSTALLER_PATH: $HOME/.cache/unity/Unity-${{ env.UNITY_VERSION }}.tar.xz
+      WINDOWS_MODULE_PATH: $HOME/.cache/unity/Unity-WindowsSupport-${{ env.UNITY_VERSION }}.tar.xz
+      BASE_URL: https://download.unity3d.com/download_unity
 
     steps:
       - name: Checkout repo
@@ -22,62 +28,50 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ~/.cache/unity/Unity-${{ env.UNITY_VERSION }}.tar.xz
-            ~/.cache/unity/Unity-WindowsSupport-${{ env.UNITY_VERSION }}.tar.xz
+            ${{ env.INSTALLER_PATH }}
+            ${{ env.WINDOWS_MODULE_PATH }}
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
-
-      - name: Get Unity Download Hash
-        id: unity_hash
-        run: |
-          HASH=101c91f3a8fb
-          echo "hash=$HASH" >> $GITHUB_OUTPUT
 
       - name: Download Unity Installer
         run: |
           set -e
 
-          HASH=${{ steps.unity_hash.outputs.hash }}
-          CACHE_DIR="$HOME/.cache/unity"
-          INSTALLER_PATH="$CACHE_DIR/Unity-${UNITY_VERSION}.tar.xz"
-          URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorInstaller/Unity-${UNITY_VERSION}.tar.xz"
-          # Download Windows build support
-          WINDOWS_URL="https://download.unity3d.com/download_unity/${HASH}/LinuxEditorTargetInstaller/UnitySetup-Windows-IL2CPP-Support-for-Editor-${UNITY_VERSION}.tar.xz"
-          WINDOWS_MODULE_PATH="$CACHE_DIR/Unity-WindowsSupport-${UNITY_VERSION}.tar.xz"
-          
-          echo "📥 Downloading: $URL"
-          echo "📥 Downloading Windows Support: $WINDOWS_URL"
+          echo "📥 Downloading Unity Editor and Windows Support Modules"
 
-          mkdir -p "$CACHE_DIR"
-
-          if [ ! -f "$INSTALLER_PATH" ]; then
-            wget -O "$INSTALLER_PATH" "$URL"
+          # Download Unity Editor
+          if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
+            wget -O "${{ env.INSTALLER_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorInstaller/Unity-${{ env.UNITY_VERSION }}.tar.xz"
           else
             echo "✅ Found Unity installer in cache."
           fi
 
-          if [ ! -f "$WINDOWS_MODULE_PATH" ]; then
-            wget -O "$WINDOWS_MODULE_PATH" "$URL"
+          # Download Windows Build Support Module
+          if [ ! -f "${{ env.WINDOWS_MODULE_PATH }}" ]; then
+            wget -O "${{ env.WINDOWS_MODULE_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorTargetInstaller/UnitySetup-Windows-IL2CPP-Support-for-Editor-${{ env.UNITY_VERSION }}.tar.xz"
           else
             echo "✅ Found Windows module in cache."
           fi
 
-          if [ ! -f "$INSTALLER_PATH" ]; then
+          # Verify downloads
+          if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
             echo "❌ Unity installer not found after download. Exiting."
             exit 1
           fi
 
-          if [ ! -f "$WINDOWS_MODULE_PATH" ]; then
+          if [ ! -f "${{ env.WINDOWS_MODULE_PATH }}" ]; then
             echo "❌ Windows module not found after download. Exiting."
             exit 1
           fi
 
-          #ls -lh ~/.cache/unity/Unity-${UNITY_VERSION}.tar.xz
-          ls -lh $INSTALLER_PATH
-          ls -lh $WINDOWS_MODULE_PATH
-
+          # Install Unity
           sudo mkdir -p /opt/unity
-          sudo tar -xJf "$INSTALLER_PATH" -C /opt/unity
+          sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
           echo "✅ Unity installed to /opt/unity"
+
+          # Install Windows Build Support module
+          echo "📦 Installing Windows module from $WINDOWS_MODULE_PATH"
+          sudo tar -xf "$WINDOWS_MODULE_PATH" -C /opt/unity
+          echo "✅ Unity Windows Module installed to /opt/unity"
 
       - name: Activate Unity License (Pro)
         run: |
@@ -100,13 +94,13 @@ jobs:
             -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
             -logFile /dev/stdout
 
-      - name: Build Project for Windows
-        run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -quit \
-            -projectPath Test/QualityBuddyDev \
-            -buildTarget StandaloneWindows64 \
-            -buildWindows64Player build/Windows/QualityBuddy.exe \
-            -logFile /dev/stdout
+      # - name: Build Project for Windows
+      #   run: |
+      #     /opt/unity/Editor/Unity -batchmode -nographics -quit \
+      #       -projectPath Test/QualityBuddyDev \
+      #       -buildTarget StandaloneWindows64 \
+      #       -buildWindows64Player build/Windows/QualityBuddy.exe \
+      #       -logFile /dev/stdout
 
       - name: List Build Folder Contents
         run: |
@@ -115,11 +109,11 @@ jobs:
           echo "Windows Build Contents:"
           ls -lh Test/QualityBuddyDev/build/Windows
 
-      - name: Upload Windows Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: QualityBuddy-Windows
-          path: Test/QualityBuddyDev/build/Windows/**
+      # - name: Upload Windows Build
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: QualityBuddy-Windows
+      #     path: Test/QualityBuddyDev/build/Windows/**
           
       - name: Upload Linux Build
         uses: actions/upload-artifact@v4
