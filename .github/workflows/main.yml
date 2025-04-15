@@ -6,18 +6,16 @@ on:
   pull_request:
 
 jobs:
-  build:
+  linux-build:
     runs-on: ubuntu-latest
     env:
       UNITY_VERSION: 6000.0.44f1
       HASH: 101c91f3a8fb
-
       UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
       UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
       UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
       CACHE_DIR: $HOME/.cache/unity
       INSTALLER_PATH: $HOME/.cache/unity/Unity-6000.0.44f1.tar.xz
-      WINDOWS_MODULE_PATH: $HOME/.cache/unity/Unity-WindowsSupport-6000.0.44f1.tar.xz
       BASE_URL: https://download.unity3d.com/download_unity
 
     steps:
@@ -33,85 +31,21 @@ jobs:
           path: ~/.cache/unity
           key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
 
-      # - name: Cache Unity installation
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: |
-      #       ${{ env.INSTALLER_PATH }}
-      #       ${{ env.WINDOWS_MODULE_PATH }}
-      #     key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
-
-      - name: Check Available Modules
-        run: |
-          HASH=101c91f3a8fb
-          VERSION=6000.0.44f1
-          
-          # Try to get the modules list
-          curl -s "https://download.unity3d.com/download_unity/${HASH}/unity-${VERSION}-modules.json" || \
-          curl -s "https://download.unity3d.com/download_unity/${HASH}/unity-modules.json"
-
-
-      - name: Download Windows Support
-        run: |
-          VERSION="6000.0.44f1"
-          HASH="101c91f3a8fb"
-          
-          # Try different possible URL patterns
-          URLS=(
-            "https://download.unity3d.com/download_unity/${HASH}/Windows64EditorTargetInstaller/UnitySetup-Windows-Mono-Support-for-Editor-${VERSION}.tar.xz"
-            "https://download.unity3d.com/download_unity/${HASH}/LinuxEditorTargetInstaller/UnitySetup-Windows-Support-for-Editor-${VERSION}.tar.xz"
-            "https://download.unity3d.com/download_unity/${HASH}/TargetSupportInstaller/UnitySetup-Windows-Support-for-Editor-${VERSION}.tar.xz"
-          )
-          
-          for URL in "${URLS[@]}"; do
-            echo "Trying URL: $URL"
-            if wget --spider "$URL" 2>/dev/null; then
-              echo "Found valid URL: $URL"
-              wget "$URL"
-              break
-            fi
-          done
-
       - name: Download Unity Installer
         run: |
           set -e
 
-          echo "📥 Downloading Unity Editor and Windows Support Modules"
+          echo "📅 Downloading Unity Editor"
 
-          # Download Unity Editor
           if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
             wget -O "${{ env.INSTALLER_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorInstaller/Unity-${{ env.UNITY_VERSION }}.tar.xz"
           else
             echo "✅ Found Unity installer in cache."
           fi
 
-          # Download Windows Build Support Module
-          if [ ! -f "${{ env.WINDOWS_MODULE_PATH }}" ]; then
-            wget -O "${{ env.WINDOWS_MODULE_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorTargetInstaller/UnitySetup-Windows-IL2CPP-Support-for-Editor-${{ env.UNITY_VERSION }}.tar.xz"
-          else
-            echo "✅ Found Windows module in cache."
-          fi
-
-          # Verify downloads
-          if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
-            echo "❌ Unity installer not found after download. Exiting."
-            exit 1
-          fi
-
-          if [ ! -f "${{ env.WINDOWS_MODULE_PATH }}" ]; then
-            echo "❌ Windows module not found after download. Exiting."
-            exit 1
-          fi
-
-          # Install Unity
           sudo mkdir -p /opt/unity
           sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
           echo "✅ Unity installed to /opt/unity"
-
-          # Install Windows Build Support module
-          echo "📦 Installing Windows module from $WINDOWS_MODULE_PATH"
-          sudo tar -xf "$WINDOWS_MODULE_PATH" -C /opt/unity
-          echo "✅ Unity Windows Module installed to /opt/unity"
 
       - name: Activate Unity License (Pro)
         run: |
@@ -121,40 +55,15 @@ jobs:
             -serial "$UNITY_LICENSE" \
             -username "$UNITY_EMAIL" \
             -password "$UNITY_PASSWORD"
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
       - name: Build Project for Linux
         run: |
           /opt/unity/Editor/Unity -batchmode -nographics -quit \
             -projectPath Test/QualityBuddyDev \
             -buildTarget StandaloneLinux64 \
-            -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
+            -buildLinux64Player Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64 \
             -logFile /dev/stdout
 
-      # - name: Build Project for Windows
-      #   run: |
-      #     /opt/unity/Editor/Unity -batchmode -nographics -quit \
-      #       -projectPath Test/QualityBuddyDev \
-      #       -buildTarget StandaloneWindows64 \
-      #       -buildWindows64Player build/Windows/QualityBuddy.exe \
-      #       -logFile /dev/stdout
-
-      - name: List Build Folder Contents
-        run: |
-          echo "Linux Build Contents:"
-          ls -lh Test/QualityBuddyDev/build/Linux
-          echo "Windows Build Contents:"
-          ls -lh Test/QualityBuddyDev/build/Windows
-
-      # - name: Upload Windows Build
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: QualityBuddy-Windows
-      #     path: Test/QualityBuddyDev/build/Windows/**
-          
       - name: Upload Linux Build
         uses: actions/upload-artifact@v4
         with:
@@ -170,3 +79,65 @@ jobs:
         if: always()
         run: |
           /opt/unity/Editor/Unity -batchmode -nographics -returnlicense -logFile /dev/stdout || true
+
+  build-windows:
+    runs-on: windows-latest
+    env:
+      UNITY_VERSION: 6000.0.44f1
+      HASH: 101c91f3a8fb
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      BASE_URL: https://download.unity3d.com/download_unity
+      INSTALLER_PATH: C:\\Unity\\UnitySetup64.exe
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download Unity Installer
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (-Not (Test-Path "${env:INSTALLER_PATH}")) {
+            Invoke-WebRequest "${env:BASE_URL}/${env:HASH}/Windows64EditorInstaller/UnitySetup64.exe" -OutFile "${env:INSTALLER_PATH}"
+          } else {
+            Write-Host "✅ Found Unity installer in cache."
+          }
+
+      - name: Install Unity
+        run: |
+          Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\\Unity\\Editor" -Wait
+
+      - name: Add Unity to PATH
+        run: echo "C:\\Unity\\Editor" | Out-File -Append $env:GITHUB_PATH
+
+      - name: Activate Unity License (Pro)
+        run: |
+          Unity.exe \
+            -batchmode -nographics -quit \
+            -logFile - \
+            -serial "$env:UNITY_LICENSE" \
+            -username "$env:UNITY_EMAIL" \
+            -password "$env:UNITY_PASSWORD"
+
+      - name: Build Project for Windows
+        run: |
+          Unity.exe -batchmode -nographics -quit \
+            -projectPath Test/QualityBuddyDev \
+            -buildTarget StandaloneWindows64 \
+            -buildWindows64Player Test/QualityBuddyDev/build/Windows/QualityBuddy.exe \
+            -logFile -
+
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: QualityBuddy-Windows
+          path: |
+            Test/QualityBuddyDev/build/Windows/QualityBuddy.exe
+            Test/QualityBuddyDev/build/Windows/UnityPlayer.dll
+            Test/QualityBuddyDev/build/Windows/QualityBuddy_Data/**
+
+      - name: Deactivate Unity License
+        if: always()
+        run: |
+          Unity.exe -batchmode -nographics -returnlicense -logFile - || true
