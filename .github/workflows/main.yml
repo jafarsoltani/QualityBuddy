@@ -98,6 +98,9 @@ jobs:
       - name: Download Unity Installer
         run: |
           $ErrorActionPreference = "Stop"
+
+          New-Item -ItemType Directory -Force -Path "C:\Unity" | Out-Null
+
           if (-Not (Test-Path "${env:INSTALLER_PATH}")) {
             Write-Host "Downloading ${env:BASE_URL}/${env:HASH}/Windows64EditorInstaller/UnitySetup64.exe"
             Invoke-WebRequest "${env:BASE_URL}/${env:HASH}/Windows64EditorInstaller/UnitySetup64.exe" -OutFile "${env:INSTALLER_PATH}"
