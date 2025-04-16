@@ -44,6 +44,9 @@ jobs:
           fi
 
       - name: Install Unity Editor
+        run: |
+          set -e
+          echo "📦 Installing Unity Editor"
           sudo mkdir -p /opt/unity
           sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
           echo "✅ Unity installed to /opt/unity"
