@@ -111,7 +111,7 @@ jobs:
           "C:\ProgramData\Unity",
           "C:\ProgramData\Unity\config",
           "C:\UnityTemp",
-          "${ env.CACHE_DIR }"
+          "${{ env.CACHE_DIR }}"
         )
         foreach ($dir in $directories) {
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
