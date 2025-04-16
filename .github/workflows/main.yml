@@ -5,82 +5,82 @@ on:
     - main
   pull_request: {}
 jobs:
-  # build-linux:
-  #   env:
-  #     UNITY_VERSION: 6000.0.44f1
-  #     HASH: 101c91f3a8fb
-  #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-  #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-  #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-  #     CACHE_DIR: $HOME/.cache/unity
-  #     INSTALLER_PATH: $HOME/.cache/unity/Unity-6000.0.44f1.tar.xz
-  #     BASE_URL: https://download.unity3d.com/download_unity
-  #     UNITY_PATH: /opt/unity/Editor/Unity
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - name: Checkout repo
-  #     uses: actions/checkout@v4
-  #   - name: Prepare cache directory
-  #     run: mkdir -p ~/.cache/unity
-  #   - name: Cache Unity installation
-  #     uses: actions/cache@v3
-  #     with:
-  #       path: ~/.cache/unity
-  #       key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
-  #   - name: Download Unity Installer
-  #     run: |
-  #       set -e
+  build-linux:
+    env:
+      UNITY_VERSION: 6000.0.44f1
+      HASH: 101c91f3a8fb
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      CACHE_DIR: $HOME/.cache/unity
+      INSTALLER_PATH: $HOME/.cache/unity/Unity-6000.0.44f1.tar.xz
+      BASE_URL: https://download.unity3d.com/download_unity
+      UNITY_PATH: /opt/unity/Editor/Unity
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+    - name: Prepare cache directory
+      run: mkdir -p ~/.cache/unity
+    - name: Cache Unity installation
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/unity
+        key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
+    - name: Download Unity Installer
+      run: |
+        set -e
 
-  #       echo "📅 Downloading Unity Editor"
+        echo "📅 Downloading Unity Editor"
 
-  #       if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
-  #         wget -O "${{ env.INSTALLER_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorInstaller/Unity-${{ env.UNITY_VERSION }}.tar.xz"
-  #       else
-  #         echo "✅ Found Unity installer in cache."
-  #       fi
-  #   - name: Install Unity Editor
-  #     run: |
-  #       set -e
+        if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
+          wget -O "${{ env.INSTALLER_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorInstaller/Unity-${{ env.UNITY_VERSION }}.tar.xz"
+        else
+          echo "✅ Found Unity installer in cache."
+        fi
+    - name: Install Unity Editor
+      run: |
+        set -e
 
-  #       echo "📦 Installing Unity Editor"
+        echo "📦 Installing Unity Editor"
 
-  #       sudo mkdir -p /opt/unity
-  #       sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
-  #       echo "✅ Unity installed to /opt/unity"
-  #   - name: Activate Unity License (Pro)
-  #     run: |
-  #       ${{ env.UNITY_PATH }} \
-  #         -batchmode -nographics -quit \
-  #         -logFile - \
-  #         -serial "${{ secrets.UNITY_LICENSE }}" \
-  #         -username "${{ secrets.UNITY_EMAIL }}" \
-  #         -password "${{ secrets.UNITY_PASSWORD }}"
-  #   - name: Build Project
-  #     run: |
-  #       ${{ env.UNITY_PATH }} -batchmode -nographics -quit \
-  #         -projectPath Test/QualityBuddyDev \
-  #         -buildTarget StandaloneLinux64 \
-  #         -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
-  #         -logFile /dev/stdout
-  #   - name: Check Unity Build Output
-  #     run: |
-  #       echo "PWD: $(pwd)"
-  #       ls -la "$(pwd)/Test/QualityBuddyDev"
-  #       find "$(pwd)/Test/QualityBuddyDev" -type f
-  #   - name: Upload Linux Build
-  #     uses: actions/upload-artifact@v4
-  #     with:
-  #       name: QualityBuddy.x86_64
-  #       path: |
-  #         Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64
-  #         Test/QualityBuddyDev/build/Linux/UnityPlayer.so
-  #         Test/QualityBuddyDev/build/Linux/QualityBuddy_Data/**
-  #         Test/QualityBuddyDev/build/Linux/libdecor-0.so.0
-  #         Test/QualityBuddyDev/build/Linux/libdecor-cairo.so
-  #   - name: Deactivate Unity License
-  #     if: always()
-  #     run: |
-  #       ${{ env.UNITY_PATH }} -batchmode -nographics -returnlicense -logFile /dev/stdout || true
+        sudo mkdir -p /opt/unity
+        sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
+        echo "✅ Unity installed to /opt/unity"
+    - name: Activate Unity License (Pro)
+      run: |
+        ${{ env.UNITY_PATH }} \
+          -batchmode -nographics -quit \
+          -logFile - \
+          -serial "${{ secrets.UNITY_LICENSE }}" \
+          -username "${{ secrets.UNITY_EMAIL }}" \
+          -password "${{ secrets.UNITY_PASSWORD }}"
+    - name: Build Project
+      run: |
+        ${{ env.UNITY_PATH }} -batchmode -nographics -quit \
+          -projectPath Test/QualityBuddyDev \
+          -buildTarget StandaloneLinux64 \
+          -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
+          -logFile /dev/stdout
+    - name: Check Unity Build Output
+      run: |
+        echo "PWD: $(pwd)"
+        ls -la "$(pwd)/Test/QualityBuddyDev"
+        find "$(pwd)/Test/QualityBuddyDev" -type f
+    - name: Upload Linux Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: QualityBuddy.x86_64
+        path: |
+          Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64
+          Test/QualityBuddyDev/build/Linux/UnityPlayer.so
+          Test/QualityBuddyDev/build/Linux/QualityBuddy_Data/**
+          Test/QualityBuddyDev/build/Linux/libdecor-0.so.0
+          Test/QualityBuddyDev/build/Linux/libdecor-cairo.so
+    - name: Deactivate Unity License
+      if: always()
+      run: |
+        ${{ env.UNITY_PATH }} -batchmode -nographics -returnlicense -logFile /dev/stdout || true
   build-windows:
     env:
       UNITY_VERSION: 6000.0.44f1
@@ -93,8 +93,8 @@ jobs:
       BASE_URL: https://download.unity3d.com/download_unity
       UNITY_PATH: C:\Unity\Editor\Unity.exe
     runs-on: windows-latest
-    # needs:
-    # - build-linux
+    needs:
+    - build-linux
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
@@ -111,7 +111,7 @@ jobs:
           "C:\ProgramData\Unity",
           "C:\ProgramData\Unity\config",
           "C:\UnityTemp",
-          "${{ env.CACHE_DIR }}"
+          "${ env.CACHE_DIR }"
         )
         foreach ($dir in $directories) {
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
