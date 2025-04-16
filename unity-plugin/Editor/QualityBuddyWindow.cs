@@ -20,6 +20,23 @@ public class QualityBuddyWindow : EditorWindow
   private string unitySerialKey = "";
   private string licenseFilePath = "";
 
+  private bool buildForWindows = true;
+  private bool buildForLinux = true;
+  private bool uploadArtifacts = true;
+
+  private string windowsArtifactName = "QualityBuddy-Windows";
+  private string linuxArtifactName = "QualityBuddy-Linux";
+
+  private string windowsBuildOutputName = "QualityBuddy.exe";
+  private string linuxBuildOutputName = "QualityBuddy.x86_64";
+  private string windowsBuildOutputPaths;
+  private string linuxBuildOutputPaths;
+
+  public QualityBuddyWindow()
+  {
+    windowsBuildOutputPaths = $"Test/QualityBuddyDev/build/Windows/{windowsBuildOutputName}";
+    linuxBuildOutputPaths = $"Test/QualityBuddyDev/build/Linux/{linuxBuildOutputName}";
+  }
 
   [MenuItem("Tools/QualityBuddy/CI Setup")]
   public static void ShowWindow()
@@ -46,6 +63,9 @@ public class QualityBuddyWindow : EditorWindow
     }
 
     DrawLicenseSection();
+    EditorGUILayout.Space(10);
+
+    DrawBuildOptionsSection();
     EditorGUILayout.Space(10);
 
     EditorGUI.BeginDisabledGroup(!IsInputValid());
@@ -94,16 +114,16 @@ public class QualityBuddyWindow : EditorWindow
 
   private void DrawLicenseSection()
   {
-    EditorGUILayout.LabelField("🧾 Unity License Setup", EditorStyles.boldLabel);
+    EditorGUILayout.LabelField("📤 GitHub Secrets – Copy & Add Manually", EditorStyles.boldLabel);
 
     selectedLicenseType = (LicenseType)EditorGUILayout.EnumPopup("License Type", selectedLicenseType);
 
-    unityEmail = EditorGUILayout.TextField("Unity Email", unityEmail);
-    unityPassword = EditorGUILayout.PasswordField("Unity Password", unityPassword);
+    unityEmail = EditorGUILayout.TextField("UNITY_EMAIL", unityEmail);
+    unityPassword = EditorGUILayout.PasswordField("UNITY_PASSWORD", unityPassword);
 
     if (selectedLicenseType == LicenseType.Professional)
     {
-      unitySerialKey = EditorGUILayout.TextField("Unity Serial Key", unitySerialKey);
+      unitySerialKey = EditorGUILayout.TextField("UNITY_SERIAL", unitySerialKey);
     }
     else
     {
@@ -120,8 +140,46 @@ public class QualityBuddyWindow : EditorWindow
       EditorGUILayout.EndHorizontal();
 
       EditorGUILayout.LabelField(licenseFilePath);
+
+      EditorGUILayout.HelpBox("🔐 Add the above secrets manually to GitHub > Settings > Secrets and Variables > Actions.", MessageType.Info);
+      EditorGUILayout.Space(10);
     }
   }
+
+  private string GetDefaultBuildOutputPath(string platform)
+  {
+    if (platform == "Windows")
+      return "build/Windows/QualityBuddy.exe";
+    if (platform == "Linux")
+      return "build/Linux/QualityBuddy.x86_64";
+    return string.Empty;
+  }
+
+  private void DrawBuildOptionsSection()
+  {
+    GUILayout.Label("🛠️ Build Options", EditorStyles.boldLabel);
+
+    buildForWindows = EditorGUILayout.Toggle("Build for Windows", buildForWindows);
+    buildForLinux = EditorGUILayout.Toggle("Build for Linux", buildForLinux);
+    uploadArtifacts = EditorGUILayout.Toggle("Upload Artifacts", uploadArtifacts);
+
+    if (buildForWindows)
+    {
+      GUILayout.Label("Windows Build Settings", EditorStyles.boldLabel);
+      windowsBuildOutputName = EditorGUILayout.TextField("Build Output Name", windowsBuildOutputName);
+      windowsArtifactName = EditorGUILayout.TextField("Artifact Name", windowsArtifactName);
+      windowsBuildOutputPaths = EditorGUILayout.TextArea(windowsBuildOutputPaths, GUILayout.Height(50));
+    }
+
+    if (buildForLinux)
+    {
+      GUILayout.Label("Linux Build Settings", EditorStyles.boldLabel);
+      linuxBuildOutputName = EditorGUILayout.TextField("Build Output Name", linuxBuildOutputName);
+      linuxArtifactName = EditorGUILayout.TextField("Artifact Name", linuxArtifactName);
+      linuxBuildOutputPaths = EditorGUILayout.TextArea(linuxBuildOutputPaths, GUILayout.Height(50));
+    }
+  }
+
   private void DrawApiKeySection()
   {
     GUILayout.Label("🔑 API Key (optional – for cloud sync):", EditorStyles.label);
@@ -142,7 +200,6 @@ public class QualityBuddyWindow : EditorWindow
     yamlPath = EditorGUILayout.TextField(yamlPath);
     EditorGUILayout.Space();
 
-
     if (GUILayout.Button("Generate GitHub Actions YML"))
     {
       GenerateGitHubCIYAML();
@@ -159,13 +216,26 @@ public class QualityBuddyWindow : EditorWindow
 
   private void GenerateGitHubCIYAML()
   {
-    var yamlContent = CIYamlGenerator.GenerateYaml();
+    // Ensure default paths are set if not provided
+    if (string.IsNullOrEmpty(windowsBuildOutputPaths))
+      windowsBuildOutputPaths = GetDefaultBuildOutputPath("Windows");
+    if (string.IsNullOrEmpty(linuxBuildOutputPaths))
+      linuxBuildOutputPaths = GetDefaultBuildOutputPath("Linux");
 
-    //string path = "Assets/QualityBuddy-CI.yml";
+    var yamlContent = CIYamlGenerator.GenerateYaml(buildForWindows,
+                                                   buildForLinux,
+                                                   uploadArtifacts,
+                                                   windowsBuildOutputName,
+                                                   windowsArtifactName,
+                                                   windowsBuildOutputPaths,
+                                                   linuxBuildOutputName,
+                                                   linuxArtifactName,
+                                                   linuxBuildOutputPaths);
 
-    File.WriteAllText(yamlPath, yamlContent);
+    string ci2Path = "Assets/QualityBuddy-CI3.yml";
+    File.WriteAllText(ci2Path, yamlContent);
     AssetDatabase.Refresh();
-    Debug.Log($"✅ GitHub Actions YML written to {yamlPath}");
+    Debug.Log($"✅ GitHub Actions YML written to {ci2Path}");
   }
 
   private void CheckUnityVersion()
