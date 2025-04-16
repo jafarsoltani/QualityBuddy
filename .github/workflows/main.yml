@@ -17,6 +17,7 @@ jobs:
       CACHE_DIR: $HOME/.cache/unity
       INSTALLER_PATH: $HOME/.cache/unity/Unity-6000.0.44f1.tar.xz
       BASE_URL: https://download.unity3d.com/download_unity
+      UNITY_PATH: /opt/unity/Editor/Unity
 
     steps:
       - name: Checkout repo
@@ -53,19 +54,19 @@ jobs:
 
       - name: Activate Unity License (Pro)
         run: |
-          /opt/unity/Editor/Unity \
+          ${{ env.UNITY_PATH }} \
             -batchmode -nographics -quit \
             -logFile - \
             -serial "$UNITY_LICENSE" \
             -username "$UNITY_EMAIL" \
             -password "$UNITY_PASSWORD"
 
-      - name: Build Project for Linux
+      - name: Build Project
         run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -quit \
+          ${{ env.UNITY_PATH }} -batchmode -nographics -quit \
             -projectPath Test/QualityBuddyDev \
             -buildTarget StandaloneLinux64 \
-            -buildLinux64Player Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64 \
+            -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
             -logFile /dev/stdout
 
       - name: Check Unity Build Output
@@ -88,7 +89,7 @@ jobs:
       - name: Deactivate Unity License
         if: always()
         run: |
-          /opt/unity/Editor/Unity -batchmode -nographics -returnlicense -logFile /dev/stdout || true
+          ${{ env.UNITY_PATH }} -batchmode -nographics -returnlicense -logFile /dev/stdout || true
 
   build-windows:
     runs-on: windows-latest
@@ -107,7 +108,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Cache Unity installer (Windows)
+      - name: Cache Unity installer
         uses: actions/cache@v3
         with:
           path: C:\\Unity\\UnitySetup64.exe
@@ -148,10 +149,6 @@ jobs:
         run: 
           Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\Unity" -Wait
 
-      - name: Check Unity Path
-        run: 
-          Get-ChildItem -Path "C:\Unity" -Recurse -ErrorAction SilentlyContinue | Out-String | Write-Host
-
       - name: Activate Unity License (Pro)
         run: |
           $logFile = "C:\UnityTemp\unity-license.log"
@@ -178,7 +175,7 @@ jobs:
             #exit $exitCode
           }
 
-      - name: Build Project for Windows
+      - name: Build Project
         run: |
           $logFile = "C:\UnityTemp\unity-build.log"
           
