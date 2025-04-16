@@ -43,6 +43,7 @@ jobs:
             echo "✅ Found Unity installer in cache."
           fi
 
+      - name: Install Unity Editor
           sudo mkdir -p /opt/unity
           sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
           echo "✅ Unity installed to /opt/unity"
@@ -67,8 +68,8 @@ jobs:
       - name: Check Unity Build Output
         run: |
           echo "PWD: $(pwd)"
-          ls -la "$(pwd)/Test/QualityBuddyDev/build"
-          find "$(pwd)/Test/QualityBuddyDev/build" -type f
+          ls -la "$(pwd)/Test/QualityBuddyDev"
+          find "$(pwd)/Test/QualityBuddyDev" -type f
           
       - name: Upload Linux Build
         uses: actions/upload-artifact@v4
