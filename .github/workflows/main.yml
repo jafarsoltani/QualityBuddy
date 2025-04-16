@@ -1,13 +1,11 @@
 name: Unity Build
-
 on:
   push:
-    branches: [ main ]
-  pull_request:
-
+    branches:
+    - main
+  pull_request: {}
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
     env:
       UNITY_VERSION: 6000.0.44f1
       HASH: 101c91f3a8fb
@@ -18,204 +16,171 @@ jobs:
       INSTALLER_PATH: $HOME/.cache/unity/Unity-6000.0.44f1.tar.xz
       BASE_URL: https://download.unity3d.com/download_unity
       UNITY_PATH: /opt/unity/Editor/Unity
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v4
+    - name: Prepare cache directory
+      run: mkdir -p ~/.cache/unity
+    - name: Cache Unity installation
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/unity
+        key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
+    - name: Download Unity Installer
+      run: |
+        set -e
 
-      - name: Prepare cache directory
-        run: mkdir -p ~/.cache/unity
+        echo "📅 Downloading Unity Editor"
 
-      - name: Cache Unity installation
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/unity
-          key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
+        if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
+          wget -O "${{ env.INSTALLER_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorInstaller/Unity-${{ env.UNITY_VERSION }}.tar.xz"
+        else
+          echo "✅ Found Unity installer in cache."
+        fi
+    - name: Install Unity Editor
+      run: |
+        set -e
 
-      - name: Download Unity Installer
-        run: |
-          set -e
+        echo "📦 Installing Unity Editor"
 
-          echo "📅 Downloading Unity Editor"
-
-          if [ ! -f "${{ env.INSTALLER_PATH }}" ]; then
-            wget -O "${{ env.INSTALLER_PATH }}" "${{ env.BASE_URL }}/${{ env.HASH }}/LinuxEditorInstaller/Unity-${{ env.UNITY_VERSION }}.tar.xz"
-          else
-            echo "✅ Found Unity installer in cache."
-          fi
-
-      - name: Install Unity Editor
-        run: |
-          set -e
-          echo "📦 Installing Unity Editor"
-          sudo mkdir -p /opt/unity
-          sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
-          echo "✅ Unity installed to /opt/unity"
-
-      - name: Activate Unity License (Pro)
-        run: |
-          ${{ env.UNITY_PATH }} \
-            -batchmode -nographics -quit \
-            -logFile - \
-            -serial "$UNITY_LICENSE" \
-            -username "$UNITY_EMAIL" \
-            -password "$UNITY_PASSWORD"
-
-      - name: Build Project
-        run: |
-          ${{ env.UNITY_PATH }} -batchmode -nographics -quit \
-            -projectPath Test/QualityBuddyDev \
-            -buildTarget StandaloneLinux64 \
-            -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
-            -logFile /dev/stdout
-
-      - name: Check Unity Build Output
-        run: |
-          echo "PWD: $(pwd)"
-          ls -la "$(pwd)/Test/QualityBuddyDev"
-          find "$(pwd)/Test/QualityBuddyDev" -type f
-          
-      - name: Upload Linux Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: QualityBuddy-Linux
-          path: |
-            Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64
-            Test/QualityBuddyDev/build/Linux/UnityPlayer.so
-            Test/QualityBuddyDev/build/Linux/QualityBuddy_Data/**
-            Test/QualityBuddyDev/build/Linux/libdecor-0.so.0
-            Test/QualityBuddyDev/build/Linux/libdecor-cairo.so
-
-      - name: Deactivate Unity License
-        if: always()
-        run: |
-          ${{ env.UNITY_PATH }} -batchmode -nographics -returnlicense -logFile /dev/stdout || true
-
+        sudo mkdir -p /opt/unity
+        sudo tar -xJf "${{ env.INSTALLER_PATH }}" -C /opt/unity
+        echo "✅ Unity installed to /opt/unity"
+    - name: Activate Unity License (Pro)
+      run: |
+        ${{ env.UNITY_PATH }} \
+          -batchmode -nographics -quit \
+          -logFile - \
+          -serial "${{ secrets.UNITY_LICENSE }}" \
+          -username "${{ secrets.UNITY_EMAIL }}" \
+          -password "${{ secrets.UNITY_PASSWORD }}"
+    - name: Build Project
+      run: |
+        ${ env.UNITY_PATH } -batchmode -nographics -quit \
+          -projectPath Test/QualityBuddyDev \
+          -buildTarget StandaloneLinux64 \
+          -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
+          -logFile /dev/stdout
+    - name: Check Unity Build Output
+      run: |
+        echo "PWD: $(pwd)"
+        ls -la "$(pwd)/Test/QualityBuddyDev"
+        find "$(pwd)/Test/QualityBuddyDev" -type f
+    - name: Upload Linux Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: QualityBuddy.x86_64
+        path: |
+          Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64
+          Test/QualityBuddyDev/build/Linux/UnityPlayer.so
+          Test/QualityBuddyDev/build/Linux/QualityBuddy_Data/**
+          Test/QualityBuddyDev/build/Linux/libdecor-0.so.0
+          Test/QualityBuddyDev/build/Linux/libdecor-cairo.so
+    - name: Deactivate Unity License
+      if: always()
+      run: |
+        ${{ env.UNITY_PATH }} -batchmode -nographics -returnlicense -logFile /dev/stdout || true
   build-windows:
-    runs-on: windows-latest
-    needs: build-linux # Ensure Linux build is completed first as we have 1 license.
     env:
       UNITY_VERSION: 6000.0.44f1
       HASH: 101c91f3a8fb
       UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
       UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
       UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      CACHE_DIR: C:\Unity\cache
+      INSTALLER_PATH: C:\Unity\cache\UnitySetup64.exe
       BASE_URL: https://download.unity3d.com/download_unity
-      INSTALLER_PATH: C:\\Unity\\UnitySetup64.exe
-      UNITY_PATH: C:\\Unity\\Editor\\Unity.exe
-
+      UNITY_PATH: C:\Unity\Editor\Unity.exe
+    runs-on: windows-latest
+    needs:
+    - build-linux
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Cache Unity installer
-        uses: actions/cache@v3
-        with:
-          path: C:\\Unity\\UnitySetup64.exe
-          key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
-
-      - name: Create Unity directories
-        run: |
-          $directories = @(
-            "C:\Users\runneradmin\AppData\Local\Unity\Caches",
-            "C:\Users\runneradmin\AppData\Local\Unity",
-            "C:\ProgramData\Unity",
-            "C:\ProgramData\Unity\config",
-            "C:\UnityTemp"
-          )
-          
-          foreach ($dir in $directories) {
-            New-Item -ItemType Directory -Force -Path $dir | Out-Null
-            Write-Host "Created directory: $dir"
-          }
-
-      - name: Download Unity Installer
-        run: |
-          $ErrorActionPreference = "Stop"
-
-          New-Item -ItemType Directory -Force -Path "C:\Unity" | Out-Null
-
-          if (-Not (Test-Path "${env:INSTALLER_PATH}")) 
-          {
-            Write-Host "Downloading ${env:BASE_URL}/${env:HASH}/Windows64EditorInstaller/UnitySetup64.exe"
-            Invoke-WebRequest "${env:BASE_URL}/${env:HASH}/Windows64EditorInstaller/UnitySetup64.exe" -OutFile "${env:INSTALLER_PATH}"
-          } 
-          else 
-          {
-            Write-Host "✅ Found Unity installer in cache."
-          }
-
-      - name: Install Unity Editor
-        run: 
-          Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\Unity" -Wait
-
-      - name: Activate Unity License (Pro)
-        run: |
-          $logFile = "C:\UnityTemp\unity-license.log"
-          $unityArgs = @(
-            "-batchmode",
-            "-nographics",
-            "-quit",
-            "-logFile", "$logFile",
-            "-serial", "$env:UNITY_LICENSE",
-            "-username", "$env:UNITY_EMAIL",
-            "-password", "$env:UNITY_PASSWORD"
-          )
-
-          $process = Start-Process -FilePath "$env:UNITY_PATH" -ArgumentList $unityArgs -Wait -PassThru
-          $exitCode = $process.ExitCode
-
-          Write-Host "Unity exited with code: $exitCode"
-          Write-Host "========== Unity License Log =========="
-          Get-Content $logFile | Write-Host
-
-          if ($exitCode -ne 0) 
-          {
-            Write-Host "❌ License activation failed."
-            #exit $exitCode
-          }
-
-      - name: Build Project
-        run: |
-          $logFile = "C:\UnityTemp\unity-build.log"
-          
-          $unityArgs = @(
-            "-batchmode",
-            "-nographics",
-            "-quit",
-            "-logFile", "$logFile",
-            "-projectPath", "Test/QualityBuddyDev",
-            "-buildWindows64Player", "build/Windows/QualityBuddy.exe"
-          )
-
-          $process = Start-Process -FilePath "$env:UNITY_PATH" -ArgumentList $unityArgs -Wait -PassThru
-          $exitCode = $process.ExitCode
-
-          Write-Host "Unity exited with code: $exitCode"
-          Write-Host "========== Unity Build Log =========="
-          Get-Content $logFile | Write-Host
-
-          if ($exitCode -ne 0) 
-          {
-            Write-Host "❌ Build failed."
-            #exit $exitCode
-          }
-      
-      - name: Check Unity Build Output
-        run: |
-          Write-Host "PWD: $(Get-Location)"
-          Get-ChildItem -Path "$pwd\Test\QualityBuddyDev\build" -Recurse -Force -ErrorAction SilentlyContinue | Out-String | Write-Host
-
-      - name: Upload Windows Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: QualityBuddy-Windows
-          path: |
-            Test/QualityBuddyDev/build/Windows/QualityBuddy.exe
-            Test/QualityBuddyDev/build/Windows/UnityPlayer.dll
-            Test/QualityBuddyDev/build/Windows/QualityBuddy_Data/**
-
-      - name: Deactivate Unity License
-        if: always()
-        run: |
-          & $env:UNITY_PATH -batchmode -nographics -returnlicense -logFile - || true
+    - name: Checkout repo
+      uses: actions/checkout@v4
+    - name: Cache Unity installer
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.CACHE_DIR }}
+        key: ${{ runner.os }}-unity-${{ env.UNITY_VERSION }}
+    - name: Create Unity directories
+      run: |
+        $directories = @(
+          "C:\Users\runneradmin\AppData\Local\Unity\Caches",
+          "C:\Users\runneradmin\AppData\Local\Unity",
+          "C:\ProgramData\Unity",
+          "C:\ProgramData\Unity\config",
+          "C:\UnityTemp"
+        )
+        foreach ($dir in $directories) {
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Write-Host "Created directory: $dir"
+        }
+    - name: Download Unity Installer
+      run: |
+        $ErrorActionPreference = "Stop"
+        New-Item -ItemType Directory -Force -Path "C:\Unity" | Out-Null
+        if (-Not (Test-Path "${env:INSTALLER_PATH}")) {
+          Write-Host "Downloading ${env:BASE_URL}/${env:HASH}/Windows64EditorInstaller/UnitySetup64.exe"
+          Invoke-WebRequest "${env:BASE_URL}/${env:HASH}/Windows64EditorInstaller/UnitySetup64.exe" -OutFile "${env:INSTALLER_PATH}"
+        } else {
+          Write-Host "✅ Found Unity installer in cache."
+        }
+    - name: Install Unity Editor
+      run: |
+        Start-Process -FilePath "${env:INSTALLER_PATH}" -ArgumentList "/S /D=C:\Unity" -Wait
+    - name: Activate Unity License (Pro)
+      run: |
+        $logFile = "C:\UnityTemp\unity-license.log"
+        $unityArgs = @(
+          "-batchmode",
+          "-nographics",
+          "-quit",
+          "-logFile", "$logFile",
+          "-serial", "$env:UNITY_LICENSE",
+          "-username", "$env:UNITY_EMAIL",
+          "-password", "$env:UNITY_PASSWORD"
+        )
+        $process = Start-Process -FilePath "$env:UNITY_PATH" -ArgumentList $unityArgs -Wait -PassThru
+        $exitCode = $process.ExitCode
+        Write-Host "Unity exited with code: $exitCode"
+        Write-Host "========== Unity License Log =========="
+        Get-Content $logFile | Write-Host
+        if ($exitCode -ne 0) {
+          Write-Host "❌ License activation failed."
+        }
+    - name: Build Project
+      run: |
+        $logFile = "C:\UnityTemp\unity-build.log"
+        $unityArgs = @(
+          "-batchmode",
+          "-nographics",
+          "-quit",
+          "-logFile", "$logFile",
+          "-projectPath", "Test/QualityBuddyDev",
+          "-buildWindows64Player", "build/Windows/QualityBuddy.exe"
+        )
+        $process = Start-Process -FilePath "$env:UNITY_PATH" -ArgumentList $unityArgs -Wait -PassThru
+        $exitCode = $process.ExitCode
+        Write-Host "Unity exited with code: $exitCode"
+        Write-Host "========== Unity Build Log =========="
+        Get-Content $logFile | Write-Host
+        if ($exitCode -ne 0) {
+          Write-Host "❌ Build failed."
+        }
+    - name: Check Unity Build Output
+      run: |
+        Write-Host "PWD: $(Get-Location)"
+        Get-ChildItem -Path "$pwd\Test\QualityBuddyDev\build" -Recurse -Force -ErrorAction SilentlyContinue | Out-String | Write-Host
+    - name: Upload Windows Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: QualityBuddy.zip
+        path: |
+          Test/QualityBuddyDev/build/Windows/QualityBuddy.exe
+          Test/QualityBuddyDev/build/Windows/UnityPlayer.dll
+          Test/QualityBuddyDev/build/Windows/QualityBuddy_Data/**
+    - name: Deactivate Unity License
+      if: always()
+      run: |
+        & $env:UNITY_PATH -batchmode -nographics -returnlicense -logFile - || true
