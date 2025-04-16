@@ -57,7 +57,7 @@ jobs:
           -password "${{ secrets.UNITY_PASSWORD }}"
     - name: Build Project
       run: |
-        ${ env.UNITY_PATH } -batchmode -nographics -quit \
+        ${{ env.UNITY_PATH }} -batchmode -nographics -quit \
           -projectPath Test/QualityBuddyDev \
           -buildTarget StandaloneLinux64 \
           -buildLinux64Player build/Linux/QualityBuddy.x86_64 \
