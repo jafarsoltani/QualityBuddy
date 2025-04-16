@@ -64,6 +64,12 @@ jobs:
             -buildLinux64Player Test/QualityBuddyDev/build/Linux/QualityBuddy.x86_64 \
             -logFile /dev/stdout
 
+      - name: Check Unity Build Output
+        run: |
+          echo "PWD: $(pwd)"
+          ls -la "$(pwd)/Test/QualityBuddyDev/build"
+          find "$(pwd)/Test/QualityBuddyDev/build" -type f
+          
       - name: Upload Linux Build
         uses: actions/upload-artifact@v4
         with:
