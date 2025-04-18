@@ -1,275 +1,270 @@
 using UnityEditor;
 using UnityEngine;
+using System.Collections.Generic;
 using System.IO;
 
 public class QualityBuddyWindow : EditorWindow
 {
-  private const string ApiKeyPrefKey = "QualityBuddy_API_Key";
-  private string apiKey = "";
+  private enum Platform { Windows, Linux, macOS, Switch, Xbox }
+  private enum TriggerOption { OnPush, OnPullRequest, Manual, Scheduled }
 
-  private bool showVersionWarning = false;
-  private string unityVersion = "";
+  private List<Platform> availablePlatforms = new() {
+        Platform.Windows, Platform.Linux, Platform.macOS, Platform.Switch, Platform.Xbox
+    };
 
-  private string yamlPath = "Assets/QualityBuddy-CI.yml";
+  private Dictionary<Platform, bool> platformToggles = new();
+  private Dictionary<Platform, bool> platformFoldouts = new();
+  private Dictionary<Platform, bool> buildEnabled = new();
+  private Dictionary<Platform, string> outputNames = new();
+  private Dictionary<Platform, bool> uploadEnabled = new();
+  private Dictionary<Platform, string> uploadPaths = new();
+  private Dictionary<Platform, string> artifactNames = new();
+  private Dictionary<Platform, TriggerOption> triggerOptions = new();
 
-  private enum LicenseType { Free, Professional }
-  private LicenseType selectedLicenseType = LicenseType.Free;
-
-  private string unityEmail = "";
-  private string unityPassword = "";
-  private string unitySerialKey = "";
-  private string licenseFilePath = "";
-
-  private bool buildForWindows = true;
-  private bool buildForLinux = true;
-  private bool uploadArtifacts = true;
-
-  private string windowsArtifactName = "QualityBuddy-Windows";
-  private string linuxArtifactName = "QualityBuddy-Linux";
-
-  private string windowsBuildOutputName = "QualityBuddy.exe";
-  private string linuxBuildOutputName = "QualityBuddy.x86_64";
-  private string windowsBuildOutputPaths;
-  private string linuxBuildOutputPaths;
-
-  public QualityBuddyWindow()
+  private Dictionary<Platform, string> platformEmojis = new()
   {
-    windowsBuildOutputPaths = $"Test/QualityBuddyDev/build/Windows/{windowsBuildOutputName}";
-    linuxBuildOutputPaths = $"Test/QualityBuddyDev/build/Linux/{linuxBuildOutputName}";
-  }
+      { Platform.Windows, "🪟" },
+      { Platform.Linux, "🐧" },
+      { Platform.macOS, "🍎" },
+      { Platform.Switch, "🎮" },
+      { Platform.Xbox, "🎮" }
+  };
 
-  [MenuItem("Tools/QualityBuddy/CI Setup")]
+  private Dictionary<string, string> ciProviderEmojis = new()
+  {
+      { "GitHub Actions", "🐙" },
+      { "TeamCity", "🏙️" },
+      { "Jenkins", "🤖" }
+  };
+
+  private string[] unityVersions = new[] { "2022.3.61f1", "2023.2.20f1", "6000.0.44f1" };
+  private int selectedUnityVersion = 1;
+  private bool isUnityVersionSupported = true;
+
+  private string yamlOutputPath = "Assets/QualityBuddy-CI.yml";
+
+  [MenuItem("Tools/QualityBuddy - Beta")]
   public static void ShowWindow()
   {
-    var window = GetWindow<QualityBuddyWindow>("QualityBuddy CI");
-    window.CheckUnityVersion();
+    GetWindow<QualityBuddyWindow>("QualityBuddy - Beta");
   }
 
   private void OnEnable()
   {
-    apiKey = EditorPrefs.GetString(ApiKeyPrefKey, "");
-  }
-
-  private void OnGUI()
-  {
-    if (showVersionWarning)
+    foreach (var platform in availablePlatforms)
     {
-      EditorGUILayout.HelpBox(
-          $"Quality Buddy is designed for Unity 6 (e.g., 6000.x.x).\nYou're using {unityVersion}. Some features may not work correctly.",
-          MessageType.Warning
-      );
-
-      EditorGUILayout.Space(10);
+      platformToggles.TryAdd(platform, false);
+      platformFoldouts.TryAdd(platform, false);
+      buildEnabled.TryAdd(platform, true);
+      outputNames.TryAdd(platform, "");
+      uploadEnabled.TryAdd(platform, false);
+      uploadPaths.TryAdd(platform, "");
+      artifactNames.TryAdd(platform, "");
+      triggerOptions.TryAdd(platform, TriggerOption.OnPush);
     }
 
-    DrawLicenseSection();
-    EditorGUILayout.Space(10);
-
-    DrawBuildOptionsSection();
-    EditorGUILayout.Space(10);
-
-    EditorGUI.BeginDisabledGroup(!IsInputValid());
-
-    if (GUILayout.Button("Add GitHub Secrets"))
+    string currentVersion = Application.unityVersion;
+    isUnityVersionSupported = false;
+    for (int i = 0; i < unityVersions.Length; i++)
     {
-      AddGitHubSecrets();
-      EditorGUILayout.Space(10);
+      if (currentVersion.StartsWith(unityVersions[i].Substring(0, 6))) // Match first 6 characters
+      {
+        selectedUnityVersion = i;
+        isUnityVersionSupported = true;
+        break;
+      }
     }
-
-    GUILayout.Label("QualityBuddy – CI Setup", EditorStyles.boldLabel);
-    EditorGUILayout.Space();
-
-    DrawApiKeySection();
-    EditorGUILayout.Space(10);
-
-    DrawCISection();
-    EditorGUILayout.Space(10);
-
-    DrawTestToolsSection();
-
-    EditorGUI.EndDisabledGroup();
   }
 
   private bool IsInputValid()
   {
-    if (string.IsNullOrEmpty(unityEmail) || !unityEmail.Contains("@") || !unityEmail.Contains("."))
-      return false;
+    bool anyPlatformToggled = false;
 
-    if (string.IsNullOrEmpty(unityPassword) || unityPassword.Length < 6)
-      return false;
-
-    if (selectedLicenseType == LicenseType.Professional)
+    foreach (var platform in availablePlatforms)
     {
-      if (string.IsNullOrEmpty(unitySerialKey) || unitySerialKey.Length < 10)
-        return false;
+      if (platformToggles[platform])
+      {
+        anyPlatformToggled = true;
+
+        if (buildEnabled[platform])
+        {
+          if (string.IsNullOrWhiteSpace(outputNames[platform]))
+          {
+            return false;
+          }
+        }
+
+        if (uploadEnabled[platform])
+        {
+          if (string.IsNullOrWhiteSpace(uploadPaths[platform]))
+          {
+            return false;
+          }
+        }
+      }
     }
-    else
+
+    if (!anyPlatformToggled)
     {
-      if (string.IsNullOrEmpty(licenseFilePath) || !File.Exists(licenseFilePath) || Path.GetExtension(licenseFilePath) != ".ulf")
-        return false;
+      return false;
     }
 
     return true;
   }
 
-  private void DrawLicenseSection()
+  private void OnGUI()
   {
-    EditorGUILayout.LabelField("📤 GitHub Secrets – Copy & Add Manually", EditorStyles.boldLabel);
-
-    selectedLicenseType = (LicenseType)EditorGUILayout.EnumPopup("License Type", selectedLicenseType);
-
-    unityEmail = EditorGUILayout.TextField("UNITY_EMAIL", unityEmail);
-    unityPassword = EditorGUILayout.PasswordField("UNITY_PASSWORD", unityPassword);
-
-    if (selectedLicenseType == LicenseType.Professional)
-    {
-      unitySerialKey = EditorGUILayout.TextField("UNITY_SERIAL", unitySerialKey);
-    }
-    else
-    {
-      EditorGUILayout.BeginHorizontal();
-      EditorGUILayout.LabelField("License File (.ulf)", GUILayout.Width(150));
-      if (GUILayout.Button("Browse", GUILayout.Width(100)))
-      {
-        string selectedPath = EditorUtility.OpenFilePanel("Select Unity License File", "", "ulf");
-        if (!string.IsNullOrEmpty(selectedPath))
-        {
-          licenseFilePath = selectedPath;
-        }
-      }
-      EditorGUILayout.EndHorizontal();
-
-      EditorGUILayout.LabelField(licenseFilePath);
-
-      EditorGUILayout.HelpBox("🔐 Add the above secrets manually to GitHub > Settings > Secrets and Variables > Actions.", MessageType.Info);
-      EditorGUILayout.Space(10);
-    }
-  }
-
-  private string GetDefaultBuildOutputPath(string platform)
-  {
-    if (platform == "Windows")
-      return "build/Windows/QualityBuddy.exe";
-    if (platform == "Linux")
-      return "build/Linux/QualityBuddy.x86_64";
-    return string.Empty;
-  }
-
-  private void DrawBuildOptionsSection()
-  {
-    GUILayout.Label("🛠️ Build Options", EditorStyles.boldLabel);
-
-    buildForWindows = EditorGUILayout.Toggle("Build for Windows", buildForWindows);
-    buildForLinux = EditorGUILayout.Toggle("Build for Linux", buildForLinux);
-    uploadArtifacts = EditorGUILayout.Toggle("Upload Artifacts", uploadArtifacts);
-
-    if (buildForWindows)
-    {
-      GUILayout.Label("Windows Build Settings", EditorStyles.boldLabel);
-      windowsBuildOutputName = EditorGUILayout.TextField("Build Output Name", windowsBuildOutputName);
-      windowsArtifactName = EditorGUILayout.TextField("Artifact Name", windowsArtifactName);
-      windowsBuildOutputPaths = EditorGUILayout.TextArea(windowsBuildOutputPaths, GUILayout.Height(50));
-    }
-
-    if (buildForLinux)
-    {
-      GUILayout.Label("Linux Build Settings", EditorStyles.boldLabel);
-      linuxBuildOutputName = EditorGUILayout.TextField("Build Output Name", linuxBuildOutputName);
-      linuxArtifactName = EditorGUILayout.TextField("Artifact Name", linuxArtifactName);
-      linuxBuildOutputPaths = EditorGUILayout.TextArea(linuxBuildOutputPaths, GUILayout.Height(50));
-    }
-  }
-
-  private void DrawApiKeySection()
-  {
-    GUILayout.Label("🔑 API Key (optional – for cloud sync):", EditorStyles.label);
-    EditorGUI.BeginChangeCheck();
-    apiKey = EditorGUILayout.TextField(apiKey);
-    if (EditorGUI.EndChangeCheck())
-    {
-      EditorPrefs.SetString(ApiKeyPrefKey, apiKey);
-    }
-  }
-
-  private void DrawCISection()
-  {
-    GUILayout.Label("⚙️ GitHub Actions CI Setup", EditorStyles.label);
-    GUILayout.Label("Path to the generated YAML file:", EditorStyles.label);
-    EditorGUI.BeginChangeCheck();
-
-    yamlPath = EditorGUILayout.TextField(yamlPath);
+    GUILayout.Label("👉 QualityBuddy – CI Job Generator", EditorStyles.boldLabel);
     EditorGUILayout.Space();
 
-    if (GUILayout.Button("Generate GitHub Actions YML"))
+    if (!isUnityVersionSupported)
+    {
+      EditorGUILayout.HelpBox($"Current Unity version ({Application.unityVersion}) is not supported.", MessageType.Warning);
+      GUI.enabled = false; // Disable the rest of the UI
+    }
+
+    GUILayout.Label("Select Platforms:", EditorStyles.label);
+    EditorGUILayout.BeginHorizontal();
+    foreach (var platform in availablePlatforms)
+    {
+      bool enabled = platform == Platform.Windows || platform == Platform.Linux;
+      GUI.enabled = enabled && isUnityVersionSupported; // Ensure UI remains disabled if version is unsupported
+
+      if (enabled)
+      {
+        platformToggles[platform] = GUILayout.Toggle(platformToggles[platform], $"{platformEmojis[platform]} {platform}");
+      }
+      else
+      {
+        GUILayout.Toggle(false, new GUIContent($"{platformEmojis[platform]} {platform}", "Coming soon"));
+      }
+    }
+    GUI.enabled = isUnityVersionSupported; // Reset GUI.enabled for the rest of the UI
+    EditorGUILayout.EndHorizontal();
+    EditorGUILayout.Space();
+
+    foreach (var platform in availablePlatforms)
+    {
+      if (!platformToggles[platform]) continue;
+
+      EditorGUILayout.BeginVertical("box");
+      platformFoldouts[platform] = EditorGUILayout.Foldout(platformFoldouts[platform], $"{platformEmojis[platform]} {platform} Configuration", true);
+
+      if (platformFoldouts[platform])
+      {
+        EditorGUI.indentLevel++;
+
+        buildEnabled[platform] = EditorGUILayout.Toggle("Build Project", buildEnabled[platform]);
+        if (buildEnabled[platform])
+        {
+          outputNames[platform] = EditorGUILayout.TextField("Output Name", outputNames[platform]);
+          if (string.IsNullOrWhiteSpace(outputNames[platform]))
+          {
+            EditorGUILayout.HelpBox("Output Name is required when Build Project is enabled.", MessageType.Error);
+          }
+        }
+
+        // Disable "Upload Artifacts" if "Build Project" is not enabled or "Output Name" is not defined
+        EditorGUI.BeginDisabledGroup(!buildEnabled[platform] || string.IsNullOrWhiteSpace(outputNames[platform]));
+        uploadEnabled[platform] = EditorGUILayout.Toggle("Upload Artifacts", uploadEnabled[platform]);
+        EditorGUI.EndDisabledGroup();
+
+        if (uploadEnabled[platform])
+        {
+          GUILayout.Label("Paths to File(s):");
+          uploadPaths[platform] = EditorGUILayout.TextArea(uploadPaths[platform], GUILayout.MinHeight(50));
+          artifactNames[platform] = EditorGUILayout.TextField("Artifact Name", artifactNames[platform]);
+
+          if (string.IsNullOrWhiteSpace(uploadPaths[platform]))
+          {
+            EditorGUILayout.HelpBox("Paths to File(s) are required when Upload Artifacts is enabled.", MessageType.Error);
+          }
+        }
+
+        triggerOptions[platform] = (TriggerOption)EditorGUILayout.EnumPopup("Trigger", triggerOptions[platform]);
+
+        EditorGUI.indentLevel--;
+      }
+
+      EditorGUILayout.EndVertical();
+    }
+
+    EditorGUILayout.Space();
+
+    GUILayout.Label("Unity Version:");
+    selectedUnityVersion = EditorGUILayout.Popup(selectedUnityVersion, unityVersions);
+
+    EditorGUILayout.Space();
+
+    GUILayout.Label("CI Provider:");
+    EditorGUILayout.BeginHorizontal();
+    EditorGUILayout.ToggleLeft($"{ciProviderEmojis["GitHub Actions"]} GitHub Actions", true);
+    GUI.enabled = false;
+    EditorGUILayout.ToggleLeft(new GUIContent($"{ciProviderEmojis["TeamCity"]} TeamCity", "Coming soon"), false);
+    EditorGUILayout.ToggleLeft(new GUIContent($"{ciProviderEmojis["Jenkins"]} Jenkins", "Coming soon"), false);
+    GUI.enabled = isUnityVersionSupported; // Ensure UI remains disabled if version is unsupported
+    EditorGUILayout.EndHorizontal();
+
+    EditorGUILayout.Space();
+
+    GUILayout.Label("YAML Output Path:");
+    yamlOutputPath = EditorGUILayout.TextField(yamlOutputPath);
+
+    EditorGUILayout.Space();
+
+    // Disable the button initially if input is invalid
+    var isInputValid = IsInputValid();
+    Debug.Log($"Input Valid: {isInputValid}");
+    GUI.enabled = isInputValid;
+    if (GUILayout.Button("🛠️  Generate Job YAML File"))
     {
       GenerateGitHubCIYAML();
     }
-  }
-
-  private void DrawTestToolsSection()
-  {
-    GUILayout.Label("🧪 Test Tools (Coming Soon)", EditorStyles.label);
-    GUILayout.Label("- Test tagging", EditorStyles.miniLabel);
-    GUILayout.Label("- Local test runner", EditorStyles.miniLabel);
-    GUILayout.Label("- Push to dashboard", EditorStyles.miniLabel);
+    GUI.enabled = true; // Re-enable UI for any subsequent rendering
   }
 
   private void GenerateGitHubCIYAML()
   {
-    // Ensure default paths are set if not provided
+    bool buildForWindows = platformToggles.ContainsKey(Platform.Windows) && platformToggles[Platform.Windows] && buildEnabled[Platform.Windows];
+    bool buildForLinux = platformToggles.ContainsKey(Platform.Linux) && platformToggles[Platform.Linux] && buildEnabled[Platform.Linux];
+    bool uploadArtifacts = false;
+
+    string windowsBuildOutputName = outputNames.ContainsKey(Platform.Windows) ? outputNames[Platform.Windows] : "";
+    string windowsArtifactName = artifactNames.ContainsKey(Platform.Windows) ? artifactNames[Platform.Windows] : "";
+    string windowsBuildOutputPaths = uploadPaths.ContainsKey(Platform.Windows) ? uploadPaths[Platform.Windows] : "";
+    if (platformToggles.ContainsKey(Platform.Windows) && uploadEnabled[Platform.Windows])
+      uploadArtifacts = true;
+
+    string linuxBuildOutputName = outputNames.ContainsKey(Platform.Linux) ? outputNames[Platform.Linux] : "";
+    string linuxArtifactName = artifactNames.ContainsKey(Platform.Linux) ? artifactNames[Platform.Linux] : "";
+    string linuxBuildOutputPaths = uploadPaths.ContainsKey(Platform.Linux) ? uploadPaths[Platform.Linux] : "";
+    if (platformToggles.ContainsKey(Platform.Linux) && uploadEnabled[Platform.Linux])
+      uploadArtifacts = true;
+
     if (string.IsNullOrEmpty(windowsBuildOutputPaths))
       windowsBuildOutputPaths = GetDefaultBuildOutputPath("Windows");
     if (string.IsNullOrEmpty(linuxBuildOutputPaths))
       linuxBuildOutputPaths = GetDefaultBuildOutputPath("Linux");
 
-    var yamlContent = CIYamlGenerator.GenerateYaml(buildForWindows,
-                                                   buildForLinux,
-                                                   uploadArtifacts,
-                                                   windowsBuildOutputName,
-                                                   windowsArtifactName,
-                                                   windowsBuildOutputPaths,
-                                                   linuxBuildOutputName,
-                                                   linuxArtifactName,
-                                                   linuxBuildOutputPaths);
+    var yamlContent = CIYamlGenerator.GenerateYaml(
+        buildForWindows,
+        buildForLinux,
+        uploadArtifacts,
+        windowsBuildOutputName,
+        windowsArtifactName,
+        windowsBuildOutputPaths,
+        linuxBuildOutputName,
+        linuxArtifactName,
+        linuxBuildOutputPaths
+    );
 
-    string ci2Path = "Assets/QualityBuddy-CI3.yml";
-    File.WriteAllText(ci2Path, yamlContent);
+    File.WriteAllText(yamlOutputPath, yamlContent);
     AssetDatabase.Refresh();
-    Debug.Log($"✅ GitHub Actions YML written to {ci2Path}");
+    Debug.Log("✅ GitHub Actions YML written to " + yamlOutputPath);
   }
 
-  private void CheckUnityVersion()
+  private string GetDefaultBuildOutputPath(string platform)
   {
-    unityVersion = Application.unityVersion;
-    if (unityVersion.StartsWith("6000"))
-    {
-      Debug.Log("Unity version is compatible.");
-    }
-    else
-    {
-      showVersionWarning = true;
-      Debug.LogWarning("Unity version is not compatible. Please use Unity 2021.3.x.");
-    }
+    return $"Builds/{platform}/";
   }
-
-  private void AddGitHubSecrets()
-  {
-    Debug.Log("🔐 Adding GitHub Secrets...");
-
-    Debug.Log($"UNITY_EMAIL = {unityEmail}");
-    Debug.Log($"UNITY_PASSWORD = {new string('*', unityPassword.Length)}");
-
-    if (selectedLicenseType == LicenseType.Professional)
-    {
-      Debug.Log($"UNITY_SERIAL = {unitySerialKey}");
-    }
-    else
-    {
-      Debug.Log($"UNITY_LICENSE_FILE = {licenseFilePath}");
-    }
-
-    // In a real setup, you'd write to a secrets manager file or call GitHub API.
-    // You can serialize these into a .env or a JSON and include it in the CI setup step.
-  }
-
 }
