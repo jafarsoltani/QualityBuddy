@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq; // Add this directive for LINQ methods like Where
 using UnityEngine;
 using UnityEditor;
 using YamlDotNet.Serialization;
@@ -8,6 +9,7 @@ using YamlDotNet.Serialization.NamingConventions;
 public class CIYamlGenerator
 {
     public static string GenerateYaml(
+        string projectPath,
         bool buildForWindows,
         bool buildForLinux,
         bool uploadArtifacts,
@@ -93,7 +95,7 @@ ${{ env.UNITY_PATH }} \
                         name = "Build Project",
                         run = $@"
 ${{{{ env.UNITY_PATH }}}} -batchmode -nographics -quit \
-  -projectPath Test/QualityBuddyDev \
+  -projectPath {projectPath} \
   -buildTarget StandaloneLinux64 \
   -buildLinux64Player {linuxBuildOutputName} \
   -logFile /dev/stdout"
@@ -101,21 +103,23 @@ ${{{{ env.UNITY_PATH }}}} -batchmode -nographics -quit \
                     new Step
                     {
                         name = "Check Unity Build Output",
-                        run = @"
+                        run = $@"
 echo ""PWD: $(pwd)""
-ls -la ""$(pwd)/Test/QualityBuddyDev""
-find ""$(pwd)/Test/QualityBuddyDev"" -type f"
+ls -la ""$(pwd)/{projectPath}""
+find ""$(pwd)/{projectPath}"" -type f"
                     },
-                    new Step
-                    {
-                        name = "Upload Linux Build",
-                        uses = "actions/upload-artifact@v4",
-                        with = uploadArtifacts ? new Dictionary<string, string>
+                    !string.IsNullOrWhiteSpace(linuxArtifactName) && !string.IsNullOrWhiteSpace(linuxBuildOutputPaths) && uploadArtifacts
+                        ? new Step
                         {
-                            { "name", linuxArtifactName },
-                            { "path", linuxBuildOutputPaths }
-                        } : null
-                    },
+                            name = "Upload Linux Build",
+                            uses = "actions/upload-artifact@v4",
+                            with = new Dictionary<string, string>
+                            {
+                                { "name", linuxArtifactName },
+                                { "path", linuxBuildOutputPaths }
+                            }
+                        }
+                        : null,
                     new Step
                     {
                         name = "Deactivate Unity License",
@@ -123,7 +127,7 @@ find ""$(pwd)/Test/QualityBuddyDev"" -type f"
                         run = @"
 ${{ env.UNITY_PATH }} -batchmode -nographics -returnlicense -logFile /dev/stdout || true"
                     }
-                }
+                }.Where(step => step != null).ToList()
             };
         }
 
@@ -227,7 +231,7 @@ $unityArgs = @(
   ""-nographics"",
   ""-quit"",
   ""-logFile"", ""$logFile"",
-  ""-projectPath"", ""Test/QualityBuddyDev"",
+  ""-projectPath"", ""{projectPath}"",
   ""-buildWindows64Player"", ""{windowsBuildOutputName}""
 )
 $process = Start-Process -FilePath ""$env:UNITY_PATH"" -ArgumentList $unityArgs -Wait -PassThru
@@ -242,20 +246,22 @@ if ($exitCode -ne 0) {{
                     new Step
                     {
                         name = "Check Unity Build Output",
-                        run = @"
+                        run = $@"
 Write-Host ""PWD: $(Get-Location)""
-Get-ChildItem -Path ""$pwd\Test\QualityBuddyDev\build"" -Recurse -Force -ErrorAction SilentlyContinue | Out-String | Write-Host"
+Get-ChildItem -Path ""$pwd\{projectPath}\build"" -Recurse -Force -ErrorAction SilentlyContinue | Out-String | Write-Host"
                     },
-                    new Step
-                    {
-                        name = "Upload Windows Build",
-                        uses = "actions/upload-artifact@v4",
-                        with = uploadArtifacts ? new Dictionary<string, string>
+                    !string.IsNullOrWhiteSpace(windowsArtifactName) && !string.IsNullOrWhiteSpace(windowsBuildOutputPaths) && uploadArtifacts
+                        ? new Step
                         {
-                            { "name", windowsArtifactName },
-                            { "path", windowsBuildOutputPaths }
-                        } : null
-                    },
+                            name = "Upload Windows Build",
+                            uses = "actions/upload-artifact@v4",
+                            with = new Dictionary<string, string>
+                            {
+                                { "name", windowsArtifactName },
+                                { "path", windowsBuildOutputPaths }
+                            }
+                        }
+                        : null,
                     new Step
                     {
                         name = "Deactivate Unity License",
@@ -263,7 +269,7 @@ Get-ChildItem -Path ""$pwd\Test\QualityBuddyDev\build"" -Recurse -Force -ErrorAc
                         run = @"
 & $env:UNITY_PATH -batchmode -nographics -returnlicense -logFile - || true"
                     }
-                }
+                }.Where(step => step != null).ToList()
             };
         }
 

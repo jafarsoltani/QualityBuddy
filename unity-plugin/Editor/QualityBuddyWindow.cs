@@ -42,6 +42,7 @@ public class QualityBuddyWindow : EditorWindow
   private bool isUnityVersionSupported = true;
 
   private string yamlOutputPath = "Assets/QualityBuddy-CI.yml";
+  private string projectPath = "Test/QualityBuddyDev"; // Default project path, relative to the root of the repository
 
   [MenuItem("Tools/QualityBuddy - Beta")]
   public static void ShowWindow()
@@ -114,21 +115,49 @@ public class QualityBuddyWindow : EditorWindow
 
   private void OnGUI()
   {
-    GUILayout.Label("👉 QualityBuddy – CI Job Generator", EditorStyles.boldLabel);
-    EditorGUILayout.Space();
-
+    DrawHeader();
     if (!isUnityVersionSupported)
     {
-      EditorGUILayout.HelpBox($"Current Unity version ({Application.unityVersion}) is not supported.", MessageType.Warning);
-      GUI.enabled = false; // Disable the rest of the UI
+      DrawVersionWarning();
+      return;
     }
 
+    DrawProjectPathInput(); // Add project path input field
+    DrawPlatformSelection();
+    DrawPlatformConfigurations();
+    DrawUnityVersionSelection();
+    DrawCIProviderSelection();
+    DrawYamlOutputPath();
+    DrawGenerateButton();
+  }
+
+  private void DrawHeader()
+  {
+    GUILayout.Label("👉 QualityBuddy – CI Job Generator", EditorStyles.boldLabel);
+    EditorGUILayout.Space();
+  }
+
+  private void DrawVersionWarning()
+  {
+    EditorGUILayout.HelpBox($"Current Unity version ({Application.unityVersion}) is not supported.", MessageType.Warning);
+    GUI.enabled = false; // Disable the rest of the UI
+  }
+
+  private void DrawProjectPathInput()
+  {
+    GUILayout.Label("Project Path (Relative to Repository Root):");
+    projectPath = EditorGUILayout.TextField(projectPath);
+    EditorGUILayout.Space();
+  }
+
+  private void DrawPlatformSelection()
+  {
     GUILayout.Label("Select Platforms:", EditorStyles.label);
     EditorGUILayout.BeginHorizontal();
     foreach (var platform in availablePlatforms)
     {
       bool enabled = platform == Platform.Windows || platform == Platform.Linux;
-      GUI.enabled = enabled && isUnityVersionSupported; // Ensure UI remains disabled if version is unsupported
+      GUI.enabled = enabled && isUnityVersionSupported;
 
       if (enabled)
       {
@@ -139,10 +168,13 @@ public class QualityBuddyWindow : EditorWindow
         GUILayout.Toggle(false, new GUIContent($"{platformEmojis[platform]} {platform}", "Coming soon"));
       }
     }
-    GUI.enabled = isUnityVersionSupported; // Reset GUI.enabled for the rest of the UI
+    GUI.enabled = isUnityVersionSupported;
     EditorGUILayout.EndHorizontal();
     EditorGUILayout.Space();
+  }
 
+  private void DrawPlatformConfigurations()
+  {
     foreach (var platform in availablePlatforms)
     {
       if (!platformToggles[platform]) continue;
@@ -153,74 +185,90 @@ public class QualityBuddyWindow : EditorWindow
       if (platformFoldouts[platform])
       {
         EditorGUI.indentLevel++;
-
-        buildEnabled[platform] = EditorGUILayout.Toggle("Build Project", buildEnabled[platform]);
-        if (buildEnabled[platform])
-        {
-          outputNames[platform] = EditorGUILayout.TextField("Output Name", outputNames[platform]);
-          if (string.IsNullOrWhiteSpace(outputNames[platform]))
-          {
-            EditorGUILayout.HelpBox("Output Name is required when Build Project is enabled.", MessageType.Error);
-          }
-        }
-
-        // Disable "Upload Artifacts" if "Build Project" is not enabled or "Output Name" is not defined
-        EditorGUI.BeginDisabledGroup(!buildEnabled[platform] || string.IsNullOrWhiteSpace(outputNames[platform]));
-        uploadEnabled[platform] = EditorGUILayout.Toggle("Upload Artifacts", uploadEnabled[platform]);
-        EditorGUI.EndDisabledGroup();
-
-        if (uploadEnabled[platform])
-        {
-          GUILayout.Label("Paths to File(s):");
-          uploadPaths[platform] = EditorGUILayout.TextArea(uploadPaths[platform], GUILayout.MinHeight(50));
-          artifactNames[platform] = EditorGUILayout.TextField("Artifact Name", artifactNames[platform]);
-
-          if (string.IsNullOrWhiteSpace(uploadPaths[platform]))
-          {
-            EditorGUILayout.HelpBox("Paths to File(s) are required when Upload Artifacts is enabled.", MessageType.Error);
-          }
-        }
-
-        triggerOptions[platform] = (TriggerOption)EditorGUILayout.EnumPopup("Trigger", triggerOptions[platform]);
-
+        DrawBuildConfiguration(platform);
+        DrawUploadConfiguration(platform);
+        DrawTriggerOption(platform);
         EditorGUI.indentLevel--;
       }
 
       EditorGUILayout.EndVertical();
     }
-
     EditorGUILayout.Space();
+  }
 
+  private void DrawBuildConfiguration(Platform platform)
+  {
+    buildEnabled[platform] = EditorGUILayout.Toggle("Build Project", buildEnabled[platform]);
+    if (buildEnabled[platform])
+    {
+      outputNames[platform] = EditorGUILayout.TextField("Output Name", outputNames[platform]);
+      if (string.IsNullOrWhiteSpace(outputNames[platform]))
+      {
+        EditorGUILayout.HelpBox("Output Name is required when Build Project is enabled.", MessageType.Error);
+      }
+    }
+  }
+
+  private void DrawUploadConfiguration(Platform platform)
+  {
+    EditorGUI.BeginDisabledGroup(!buildEnabled[platform] || string.IsNullOrWhiteSpace(outputNames[platform]));
+    uploadEnabled[platform] = EditorGUILayout.Toggle("Upload Artifacts", uploadEnabled[platform]);
+    EditorGUI.EndDisabledGroup();
+
+    if (uploadEnabled[platform])
+    {
+      GUILayout.Label("Paths to File(s):");
+      uploadPaths[platform] = EditorGUILayout.TextArea(uploadPaths[platform], GUILayout.MinHeight(50));
+      artifactNames[platform] = EditorGUILayout.TextField("Artifact Name", artifactNames[platform]);
+
+      if (string.IsNullOrWhiteSpace(uploadPaths[platform]))
+      {
+        EditorGUILayout.HelpBox("Paths to File(s) are required when Upload Artifacts is enabled.", MessageType.Error);
+      }
+    }
+  }
+
+  private void DrawTriggerOption(Platform platform)
+  {
+    triggerOptions[platform] = (TriggerOption)EditorGUILayout.EnumPopup("Trigger", triggerOptions[platform]);
+  }
+
+  private void DrawUnityVersionSelection()
+  {
     GUILayout.Label("Unity Version:");
     selectedUnityVersion = EditorGUILayout.Popup(selectedUnityVersion, unityVersions);
-
     EditorGUILayout.Space();
+  }
 
+  private void DrawCIProviderSelection()
+  {
     GUILayout.Label("CI Provider:");
     EditorGUILayout.BeginHorizontal();
     EditorGUILayout.ToggleLeft($"{ciProviderEmojis["GitHub Actions"]} GitHub Actions", true);
     GUI.enabled = false;
     EditorGUILayout.ToggleLeft(new GUIContent($"{ciProviderEmojis["TeamCity"]} TeamCity", "Coming soon"), false);
     EditorGUILayout.ToggleLeft(new GUIContent($"{ciProviderEmojis["Jenkins"]} Jenkins", "Coming soon"), false);
-    GUI.enabled = isUnityVersionSupported; // Ensure UI remains disabled if version is unsupported
+    GUI.enabled = isUnityVersionSupported;
     EditorGUILayout.EndHorizontal();
-
     EditorGUILayout.Space();
+  }
 
+  private void DrawYamlOutputPath()
+  {
     GUILayout.Label("YAML Output Path:");
     yamlOutputPath = EditorGUILayout.TextField(yamlOutputPath);
-
     EditorGUILayout.Space();
+  }
 
-    // Disable the button initially if input is invalid
+  private void DrawGenerateButton()
+  {
     var isInputValid = IsInputValid();
-    Debug.Log($"Input Valid: {isInputValid}");
     GUI.enabled = isInputValid;
     if (GUILayout.Button("🛠️  Generate Job YAML File"))
     {
       GenerateGitHubCIYAML();
     }
-    GUI.enabled = true; // Re-enable UI for any subsequent rendering
+    GUI.enabled = true;
   }
 
   private void GenerateGitHubCIYAML()
@@ -247,6 +295,7 @@ public class QualityBuddyWindow : EditorWindow
       linuxBuildOutputPaths = GetDefaultBuildOutputPath("Linux");
 
     var yamlContent = CIYamlGenerator.GenerateYaml(
+        projectPath, // Use the user-specified project path
         buildForWindows,
         buildForLinux,
         uploadArtifacts,
