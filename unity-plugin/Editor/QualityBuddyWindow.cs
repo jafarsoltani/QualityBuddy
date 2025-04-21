@@ -2,11 +2,11 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
+using CIYamlGeneratorNamespace; // Add this to ensure the TriggerOption enum is accessible
 
 public class QualityBuddyWindow : EditorWindow
 {
   private enum Platform { Windows, Linux, macOS, Switch, Xbox }
-  private enum TriggerOption { OnPush, OnPullRequest, Manual, Scheduled }
 
   private List<Platform> availablePlatforms = new() {
         Platform.Windows, Platform.Linux, Platform.macOS, Platform.Switch, Platform.Xbox
@@ -20,6 +20,7 @@ public class QualityBuddyWindow : EditorWindow
   private Dictionary<Platform, string> uploadPaths = new();
   private Dictionary<Platform, string> artifactNames = new();
   private Dictionary<Platform, TriggerOption> triggerOptions = new();
+  private Dictionary<Platform, string> cronExpressions = new(); // Store cron expressions for scheduled triggers
 
   private Dictionary<Platform, string> platformEmojis = new()
   {
@@ -62,6 +63,7 @@ public class QualityBuddyWindow : EditorWindow
       uploadPaths.TryAdd(platform, "");
       artifactNames.TryAdd(platform, "");
       triggerOptions.TryAdd(platform, TriggerOption.OnPush);
+      cronExpressions.TryAdd(platform, "0 0 * * *"); // Default cron expression (daily at midnight)
     }
 
     string currentVersion = Application.unityVersion;
@@ -98,6 +100,14 @@ public class QualityBuddyWindow : EditorWindow
         if (uploadEnabled[platform])
         {
           if (string.IsNullOrWhiteSpace(uploadPaths[platform]))
+          {
+            return false;
+          }
+        }
+
+        if (triggerOptions[platform] == TriggerOption.Scheduled)
+        {
+          if (string.IsNullOrWhiteSpace(cronExpressions[platform]))
           {
             return false;
           }
@@ -231,6 +241,16 @@ public class QualityBuddyWindow : EditorWindow
   private void DrawTriggerOption(Platform platform)
   {
     triggerOptions[platform] = (TriggerOption)EditorGUILayout.EnumPopup("Trigger", triggerOptions[platform]);
+
+    if (triggerOptions[platform] == TriggerOption.Scheduled)
+    {
+      GUILayout.Label("Cron Expression:");
+      cronExpressions[platform] = EditorGUILayout.TextField(cronExpressions[platform]);
+      if (string.IsNullOrWhiteSpace(cronExpressions[platform]))
+      {
+        EditorGUILayout.HelpBox("Cron Expression is required for Scheduled triggers.", MessageType.Error);
+      }
+    }
   }
 
   private void DrawUnityVersionSelection()
@@ -294,8 +314,16 @@ public class QualityBuddyWindow : EditorWindow
     if (string.IsNullOrEmpty(linuxBuildOutputPaths))
       linuxBuildOutputPaths = GetDefaultBuildOutputPath("Linux");
 
+    CIYamlGeneratorNamespace.TriggerOption selectedTrigger = triggerOptions.ContainsKey(Platform.Linux)
+        ? (CIYamlGeneratorNamespace.TriggerOption)triggerOptions[Platform.Linux]
+        : CIYamlGeneratorNamespace.TriggerOption.OnPush; // Use the correct namespace
+
+    string cronExpression = selectedTrigger == CIYamlGeneratorNamespace.TriggerOption.Scheduled
+        ? cronExpressions[Platform.Linux]
+        : null;
+
     var yamlContent = CIYamlGenerator.GenerateYaml(
-        projectPath, // Use the user-specified project path
+        projectPath,
         buildForWindows,
         buildForLinux,
         uploadArtifacts,
@@ -304,7 +332,9 @@ public class QualityBuddyWindow : EditorWindow
         windowsBuildOutputPaths,
         linuxBuildOutputName,
         linuxArtifactName,
-        linuxBuildOutputPaths
+        linuxBuildOutputPaths,
+        cronExpression,
+        selectedTrigger // Pass the correctly namespaced TriggerOption
     );
 
     File.WriteAllText(yamlOutputPath, yamlContent);

@@ -1,6 +1,14 @@
 using System.Collections.Generic;
 using YamlDotNet.Serialization;
 
+public enum TriggerOption
+{
+    OnPush,
+    OnPullRequest,
+    Manual,
+    Scheduled
+}
+
 public class GitHubWorkflow
 {
     public string name { get; set; }
@@ -14,6 +22,17 @@ public class Trigger
 
     [YamlMember(Alias = "pull_request")]
     public Branches pull_request { get; set; }
+
+    [YamlMember(Alias = "workflow_dispatch")]
+    public object workflow_dispatch { get; set; } // Manual trigger
+
+    [YamlMember(Alias = "schedule")]
+    public List<CronSchedule> schedule { get; set; } // Scheduled trigger
+}
+
+public class CronSchedule
+{
+    public string cron { get; set; }
 }
 
 public class Branches
